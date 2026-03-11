@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/Home';
 import ScanNavigator from './ScanNavigator';
 import BillsScreen from '../screens/Bills';
-import ProfileScreen from '../screens/Profile';
+import ProfileNavigator from './ProfileNavigator';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -17,11 +17,11 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const MainNavigator: React.FC = () => {
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Scan" component={ScanNavigator} />
-      <Tab.Screen name="Bills" component={BillsScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Scan" component={ScanNavigator} />
+        <Tab.Screen name="Bills" component={BillsScreen} />
+        <Tab.Screen name="Profile" component={ProfileNavigator} />
+      </Tab.Navigator>
   );
 };
 
