@@ -14,9 +14,15 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const MainNavigator: React.FC = () => {
+interface Props {
+  initialTab?: 'Home' | 'Scan' | 'Bills' | 'Profile' | null;
+}
+
+const MainNavigator: React.FC<Props> = ({ initialTab }) => {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      initialRouteName={initialTab ?? 'Home'}
+    >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Scan" component={ScanNavigator} />
         <Tab.Screen name="Bills" component={BillsScreen} />

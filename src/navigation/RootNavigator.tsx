@@ -31,8 +31,13 @@ const ErrorScreen: React.FC<{ error: string }> = ({ error }) => (
 
 const RootNavigator: React.FC = () => {
   // onboarding state comes from shared context
-  const { loading: onboardingLoading, showOnboarding, completeOnboarding } =
-    useOnboarding();
+  const {
+    loading: onboardingLoading,
+    showOnboarding,
+    completeOnboarding,
+    initialTab,
+    clearInitialTab,
+  } = useOnboarding();
 
   if (onboardingLoading) {
     // wait until AsyncStorage has been read
@@ -59,10 +64,24 @@ const RootNavigator: React.FC = () => {
     const isAuthenticated = auth.user !== null && auth.user !== undefined;
     console.log('[RootNavigator] Is authenticated:', isAuthenticated);
 
+    // once we're past onboarding and have an initial tab queued, clear it
+    // so subsequent mounts of MainNavigator default back to Home.
+    React.useEffect(() => {
+      if (!showOnboarding && initialTab) {
+        clearInitialTab();
+      }
+    }, [showOnboarding, initialTab]);
+
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <Stack.Screen name="Main" component={MainNavigator} />
+          <Stack.Screen
+            name="Main"
+            // pass initialTab prop down for redirection after onboarding
+            children={() => (
+              <MainNavigator initialTab={initialTab} />
+            )}
+          />
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />
         )}

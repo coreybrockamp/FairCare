@@ -3,11 +3,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ONBOARDING_KEY = 'onboardingComplete';
 
+// simple list of tabs we might land on after onboarding
+export type OnboardingInitialTab = 'Home' | 'Scan' | 'Bills' | 'Profile';
+
 type OnboardingContextType = {
   loading: boolean;
   showOnboarding: boolean;
-  completeOnboarding: () => Promise<void>;
+  completeOnboarding: (initialTab?: OnboardingInitialTab) => Promise<void>;
   resetOnboarding: () => Promise<void>;
+  // if non-null, the Main navigator should use this as its initial tab
+  initialTab: OnboardingInitialTab | null;
+  clearInitialTab: () => void;
 };
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(
@@ -19,6 +25,9 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [initialTab, setInitialTab] = useState<OnboardingInitialTab | null>(
+    null
+  );
 
   useEffect(() => {
     const checkFlag = async () => {
@@ -35,11 +44,14 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({
     checkFlag();
   }, []);
 
-  const completeOnboarding = async () => {
+  const completeOnboarding = async (initial?: OnboardingInitialTab) => {
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
     } catch (e) {
       console.error('[Onboarding] failed to write flag', e);
+    }
+    if (initial) {
+      setInitialTab(initial);
     }
     setShowOnboarding(false);
   };
@@ -53,9 +65,18 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({
     setShowOnboarding(true);
   };
 
+  const clearInitialTab = () => setInitialTab(null);
+
   return (
     <OnboardingContext.Provider
-      value={{ loading, showOnboarding, completeOnboarding, resetOnboarding }}
+      value={{
+        loading,
+        showOnboarding,
+        completeOnboarding,
+        resetOnboarding,
+        initialTab,
+        clearInitialTab,
+      }}
     >
       {children}
     </OnboardingContext.Provider>

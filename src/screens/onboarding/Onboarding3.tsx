@@ -7,30 +7,20 @@ type NavProp = StackNavigationProp<OnboardingStackParamList, 'Onboarding3'>;
 
 interface Props {
   navigation: NavProp;
-  onComplete: () => void;
+  onComplete: (initialTab?: 'Home' | 'Scan' | 'Bills' | 'Profile') => void;
 }
 
 const Onboarding3: React.FC<Props> = ({ navigation, onComplete }) => {
   const handleStart = () => {
-    // completeOnboarding writes flag and hides this navigator; once the
-    // root navigator re-renders it will show MainNavigator.  After the flag
-    // has been saved we also programmatically send the user to the Scan
-    // tab's Camera screen so they land exactly where the CTA promises.
-    (async () => {
-      await onComplete();
-      // navigate the parent (root) stack to Main -> Scan -> Camera
-      // `getParent()` may be undefined in tests but that's ok.
-      const parentNav: any | undefined = navigation.getParent();
-      parentNav?.navigate('Main', {
-        screen: 'Scan',
-        params: { screen: 'Camera' },
-      });
-    })();
+    // completeOnboarding will set the flag and notify RootNavigator.
+    // we supply 'Scan' as the desired initial tab so the MainNavigator
+    // opens on the camera screen automatically.
+    onComplete('Scan');
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.skip} onPress={onComplete}>
+      <TouchableOpacity style={styles.skip} onPress={() => onComplete()}> 
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
       <View style={styles.content}>
