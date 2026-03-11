@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { saveImageToStorage, readImageAsBase64 } from '../../services/storage';
+import { saveImageToStorage } from '../../services/storage';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -32,16 +33,24 @@ const PreviewScreen: React.FC<PreviewScreenProps> = ({ navigation, route }) => {
     try {
       console.log('Preview: Confirming captured image, saving to storage...');
 
-      // Save image to app storage
+      // compress the photo before doing anything else
       const timestamp = Date.now();
       const fileName = `bill-${timestamp}.jpg`;
-      const storagePath = await saveImageToStorage(photoUri, fileName);
 
-      console.log('Preview: Image saved to storage');
+      console.log('Preview: compressing image for upload');
+      const manipulated = await ImageManipulator.manipulateAsync(
+        photoUri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
 
-      // Read as base64 for OCR
-      const base64 = await readImageAsBase64(storagePath);
-      console.log('Preview: Image converted to base64');
+      // save the compressed version into storage so we have a persistent URI
+      const storagePath = await saveImageToStorage(manipulated.uri, fileName);
+      console.log('Preview: Image compressed and saved to storage', storagePath);
+
+      // we already got base64 from manipulator, just make sure it's defined
+      const base64 = (manipulated.base64 || '').replace(/^data:image\/[a-z]+;base64,/, '');
+      console.log('Preview: Image converted to base64, size', base64.length);
 
       // Navigate to processing screen
       navigation.navigate('Processing', {

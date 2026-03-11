@@ -110,18 +110,26 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
 
   const lineItems: any[] = parsed.line_items || [];
 
-  const renderLineItem = (item: any, idx: number) => (
-    <View key={idx} style={styles.row}>
-      <Text style={styles.cell}>{item.cpt_code || '-'}</Text>
-      <Text style={styles.cell}>{item.description || '-'}</Text>
-      <Text style={styles.cell}>{item.quantity || '-'}</Text>
-      <Text style={styles.cell}>{item.unit_charge || '-'}</Text>
-      <Text style={styles.cell}>{item.total_charge || '-'}</Text>
-      {item.confidence_score !== undefined && (
-        <Text style={styles.cellSmall}>{(item.confidence_score * 100).toFixed(0)}%</Text>
-      )}
-    </View>
-  );
+  const renderLineItem = (item: any, idx: number) => {
+    const getVal = (f: any) => {
+      if (f && typeof f === 'object') {
+        return f.value ?? '';
+      }
+      return f ?? '';
+    };
+    return (
+      <View key={idx} style={styles.row}>
+        <Text style={styles.cell}>{getVal(item.cpt_code) || '-'}</Text>
+        <Text style={styles.cell}>{getVal(item.description) || '-'}</Text>
+        <Text style={styles.cell}>{getVal(item.quantity) || '-'}</Text>
+        <Text style={styles.cell}>{getVal(item.unit_charge) || '-'}</Text>
+        <Text style={styles.cell}>{getVal(item.total_charge) || '-'}</Text>
+        {item.confidence_score !== undefined && (
+          <Text style={styles.cellSmall}>{(item.confidence_score * 100).toFixed(0)}%</Text>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -129,11 +137,15 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Patient</Text>
-          <Text style={styles.value}>{decryptedPatient || parsed.patient_name}</Text>
+          <Text style={styles.value}>
+            {decryptedPatient || (parsed.patient_name?.value ?? parsed.patient_name)}
+          </Text>
         </View>
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Provider</Text>
-          <Text style={styles.value}>{decryptedProvider || parsed.provider_name}</Text>
+          <Text style={styles.value}>
+            {decryptedProvider || (parsed.provider_name?.value ?? parsed.provider_name)}
+          </Text>
         </View>
 
         <View style={styles.tableHeader}>
@@ -146,10 +158,10 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         {lineItems.map(renderLineItem)}
 
         <View style={styles.summary}>
-          <Text>Subtotal: {parsed.subtotal}</Text>
-          <Text>Adjustments: {parsed.insurance_adjustments}</Text>
-          <Text>Patient owes: {parsed.patient_responsibility}</Text>
-          <Text>Total due: {parsed.total_due}</Text>
+          <Text>Subtotal: {parsed.subtotal?.value ?? parsed.subtotal}</Text>
+          <Text>Adjustments: {parsed.insurance_adjustments?.value ?? parsed.insurance_adjustments}</Text>
+          <Text>Patient owes: {parsed.patient_responsibility?.value ?? parsed.patient_responsibility}</Text>
+          <Text>Total due: {parsed.total_due?.value ?? parsed.total_due}</Text>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleAddEob}>
@@ -158,9 +170,14 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         {eob && (
           <View style={styles.comparisonSection}>
             <Text style={styles.comparisonTitle}>Comparison with EOB</Text>
-            <Text>Billed: {parsed.total_due}</Text>
-            <Text>Insurance paid: {eobParsed.insurance_paid}</Text>
-            <Text>Patient owes: {eobParsed.patient_responsibility}</Text>
+            <Text>Billed: {parsed.total_due?.value ?? parsed.total_due}</Text>
+            <Text>
+              Insurance paid: {eobParsed.insurance_paid?.value ?? eobParsed.insurance_paid}
+            </Text>
+            <Text>
+              Patient owes:{' '}
+              {eobParsed.patient_responsibility?.value ?? eobParsed.patient_responsibility}
+            </Text>
             {/* further discrepancy logic could highlight differences */}
           </View>
         )}

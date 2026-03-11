@@ -30,7 +30,8 @@ const ErrorScreen: React.FC<{ error: string }> = ({ error }) => (
 );
 
 const RootNavigator: React.FC = () => {
-  // onboarding state comes from shared context
+  // all hooks must run unconditionally and at the top of the component
+  const auth = useAuth();
   const {
     loading: onboardingLoading,
     showOnboarding,
@@ -39,6 +40,15 @@ const RootNavigator: React.FC = () => {
     clearInitialTab,
   } = useOnboarding();
 
+  // once we're past onboarding and have an initial tab queued, clear it
+  // so subsequent mounts of MainNavigator default back to Home.
+  React.useEffect(() => {
+    if (!showOnboarding && initialTab) {
+      clearInitialTab();
+    }
+  }, [showOnboarding, initialTab]);
+
+  // short-circuit rendering based on onboarding state
   if (onboardingLoading) {
     // wait until AsyncStorage has been read
     return <LoadingScreen />;
@@ -48,9 +58,8 @@ const RootNavigator: React.FC = () => {
     return <OnboardingNavigator onFinish={completeOnboarding} />;
   }
 
+  // everything below assumes hooks have already been called
   try {
-    const auth = useAuth();
-
     const loadingValue: boolean = auth.loading as boolean;
     console.log('[RootNavigator] Loading:', loadingValue, '| User:', !!auth.user);
 
@@ -64,23 +73,13 @@ const RootNavigator: React.FC = () => {
     const isAuthenticated = auth.user !== null && auth.user !== undefined;
     console.log('[RootNavigator] Is authenticated:', isAuthenticated);
 
-    // once we're past onboarding and have an initial tab queued, clear it
-    // so subsequent mounts of MainNavigator default back to Home.
-    React.useEffect(() => {
-      if (!showOnboarding && initialTab) {
-        clearInitialTab();
-      }
-    }, [showOnboarding, initialTab]);
-
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen
             name="Main"
             // pass initialTab prop down for redirection after onboarding
-            children={() => (
-              <MainNavigator initialTab={initialTab} />
-            )}
+            children={() => <MainNavigator initialTab={initialTab} />}
           />
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />
@@ -89,7 +88,8 @@ const RootNavigator: React.FC = () => {
     );
   } catch (error) {
     console.error('[RootNavigator] Error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error in RootNavigator';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error in RootNavigator';
     return <ErrorScreen error={errorMessage} />;
   }
 };

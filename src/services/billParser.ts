@@ -19,11 +19,11 @@ function xorEncrypt(text: string, key: Uint8Array): string {
     output[i] = input[i] ^ key[i % key.length];
   }
   // base64 encode
-  return Buffer.from(output).toString('base64');
+  return btoa(String.fromCharCode(...output));
 }
 
 function xorDecrypt(data: string, key: Uint8Array): string {
-  const input = Buffer.from(data, 'base64');
+  const input = Uint8Array.from(atob(data), c => c.charCodeAt(0));
   const output = new Uint8Array(input.length);
   for (let i = 0; i < input.length; i++) {
     output[i] = input[i] ^ key[i % key.length];
@@ -32,15 +32,18 @@ function xorDecrypt(data: string, key: Uint8Array): string {
 }
 
 export async function parseBill(input: { ocrText?: string; imageBase64?: string }) {
-  // call the edge function, forwarding whichever field is provided
-  const { data, error } = await supabase.functions.invoke('parse-bill', {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/parse-bill';
+  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  console.log('parseBill: fetching', url);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key, 'apikey': key },
     body: JSON.stringify(input),
   });
-  if (error) {
-    console.error('Error invoking parse-bill:', error);
-    throw error;
-  }
-  return data;
+  const text = await response.text();
+  console.log('parseBill status:', response.status, text.substring(0, 100));
+  if (response.status !== 200) throw new Error('parse-bill failed: ' + text);
+  return JSON.parse(text);
 }
 
 export async function parseEob(ocrText: string) {
@@ -56,7 +59,7 @@ export async function createBill(rawOcr: string, imageUri: string) {
     raw_ocr_text: rawOcr,
     images: imageUri,
     status: 'uploaded',
-  });
+  }).select();
   if (error) throw error;
   return data?.[0];
 }
