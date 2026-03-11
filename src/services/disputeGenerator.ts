@@ -26,12 +26,49 @@ export async function generateDisputeLetter(
 
   const billData = bill.parsed_data || {};
   
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  // Fetch user's profile for personalized patient name and address
+  let userFirstName = '';
+  let userLastName = '';
+  let userAddress = '';
+  let userCity = '';
+  let userState = '';
+  let userZip = '';
+  
+  if (user?.id) {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (profile) {
+        userFirstName = profile.first_name || '';
+        userLastName = profile.last_name || '';
+        userAddress = profile.address || '';
+        userCity = profile.city || '';
+        userState = profile.state || '';
+        userZip = profile.zip || '';
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+    }
+  }
+  
   // Extract real patient and provider names from billData
   let realPatientName = getField(billData.patient_name) || patientName || 'Patient';
   let realProviderName = getField(billData.provider_name) || providerName || 'Provider';
   
+  // If user has saved profile, use their name instead of bill data
+  if (userFirstName || userLastName) {
+    realPatientName = `${userFirstName} ${userLastName}`.trim() || realPatientName;
+  }
+  
   // Decrypt if encrypted
-  if (billData.patient_name_enc && realPatientName) {
+  if (billData.patient_name_enc && !userFirstName && realPatientName) {
     try {
       realPatientName = await decryptField(realPatientName);
     } catch (err) {
@@ -46,6 +83,12 @@ export async function generateDisputeLetter(
       console.error('Failed to decrypt provider name:', err);
     }
   }
+  
+  // Build full address for letter signature
+  const fullAddress = [userAddress, userCity, userState, userZip]
+    .filter(part => part && part.trim())
+    .join(', ');
+  
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/generate-dispute-letter';
   const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -56,7 +99,13 @@ export async function generateDisputeLetter(
       'Authorization': 'Bearer ' + key,
       'apikey': key,
     },
-    body: JSON.stringify({ billData, errors, patientName: realPatientName, providerName: realProviderName }),
+    body: JSON.stringify({ 
+      billData, 
+      errors, 
+      patientName: realPatientName, 
+      providerName: realProviderName,
+      userAddress: fullAddress,
+    }),
   });
 
   const resText = await res.text();

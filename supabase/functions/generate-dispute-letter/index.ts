@@ -29,6 +29,7 @@ interface RequestBody {
   errors: DetectedError[];
   patientName: string;
   providerName: string;
+  userAddress?: string;
 }
 
 serve(async (req) => {
@@ -38,7 +39,7 @@ serve(async (req) => {
 
   try {
     const body: RequestBody = await req.json();
-    const { billData, errors, patientName, providerName } = body;
+    const { billData, errors, patientName, providerName, userAddress } = body;
 
     if (!billData || !errors || !patientName || !providerName) {
       return new Response(
@@ -59,11 +60,12 @@ serve(async (req) => {
       .reduce((sum, err) => sum + (err.estimated_overcharge || 0), 0)
       .toFixed(2);
 
-    const systemPrompt = `You are a medical billing dispute expert. Write professional dispute letters. Output ONLY the letter itself starting with the date — no introduction, no explanation, no preamble. Start directly with the date line.`;
+    const systemPrompt = `You are a medical billing dispute expert. Write professional dispute letters. Output ONLY the letter itself starting with the date — no introduction, no explanation, no preamble. Start directly with the date line. Include the sender's address (if provided) in the letter header.`;
 
     const userPrompt = `Generate a professional dispute letter with these details:
 
 Patient Name: ${patientName}
+Patient Address: ${userAddress || "[Patient Address]"}
 Provider/Facility: ${providerName}
 Bill Total Due: $${billData.total_due || "0.00"}
 Patient Responsibility: $${billData.patient_responsibility || "0.00"}
@@ -73,7 +75,7 @@ ${errorSummary}
 
 Total Estimated Overcharge: $${totalOvercharge}
 
-Write the complete dispute letter in professional business letter format. Include today's date. Make it clear, specific, and actionable. Output ONLY the letter with no preamble.`;
+Write the complete dispute letter in professional business letter format. Include today's date and the patient address in the letter header. Make it clear, specific, and actionable. Output ONLY the letter with no preamble.`;
 
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicApiKey) {
