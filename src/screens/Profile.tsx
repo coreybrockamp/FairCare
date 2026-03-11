@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { Bill, EOB } from '../types/database';
+import { supabase } from '../services/supabase';
 
 const ProfileScreen: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -22,7 +23,6 @@ const ProfileScreen: React.FC = () => {
     if (!confirmed) return;
     try {
       console.log('[Profile] deleting user data');
-      const supabase = require('../services/supabase').supabase;
       // remove bills and eobs rows
       if (user?.id) {
         await supabase.from<EOB>('eobs').delete().eq('user_id', user.id);
