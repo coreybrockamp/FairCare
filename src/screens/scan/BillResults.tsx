@@ -22,9 +22,13 @@ import { ScanStackParamList } from '../../navigation/ScanNavigator';
     textSecondary: '#8B8B8B',
     accent: '#FFD93D',
     success: '#6BCB77',
+    errorHigh: '#DC3545',
+    errorMedium: '#FD7E14',
+    errorLow: '#FFC107',
   };
 import { supabase } from '../../services/supabase';
 import { decryptField } from '../../services/billParser';
+import { runErrorDetection, DetectedError } from '../../services/errorDetection';
 
 interface Props {
   navigation: StackNavigationProp<ScanStackParamList, 'BillResults'>;
@@ -38,6 +42,8 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
   const [eob, setEob] = useState<any>(null);
   const [decryptedPatient, setDecryptedPatient] = useState<string | null>(null);
   const [decryptedProvider, setDecryptedProvider] = useState<string | null>(null);
+  const [errors, setErrors] = useState<DetectedError[]>([]);
+  const [expandedError, setExpandedError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -62,6 +68,9 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         if (data.parsed_data?.provider_name) {
           setDecryptedProvider(await decryptField(data.parsed_data.provider_name));
         }
+        // Run error detection
+        const detectedErrors = runErrorDetection(data.parsed_data || {});
+        setErrors(detectedErrors);
       } catch (err: any) {
         console.error('BillResults load error', err);
         Alert.alert('Error', err.message || 'Failed to load bill');
@@ -118,6 +127,33 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
   const parsed = bill.parsed_data || {};
   const eobParsed = eob?.parsed_data || {};
 
+  const getSeverityColor = (severity: 'high' | 'medium' | 'low') => {
+    switch (severity) {
+      case 'high':
+        return COLORS.errorHigh;
+      case 'medium':
+        return COLORS.errorMedium;
+      default:
+        return COLORS.errorLow;
+    }
+  };
+
+  const getSeverityLabel = (severity: 'high' | 'medium' | 'low') => {
+    switch (severity) {
+      case 'high':
+        return 'CRITICAL';
+      case 'medium':
+        return 'MEDIUM';
+      default:
+        return 'LOW';
+    }
+  };
+
+  const totalEstimatedOvercharge = errors.reduce(
+    (sum, err) => sum + (err.estimated_overcharge || 0),
+    0
+  );
+
   const lineItems: any[] = parsed.line_items || [];
 
   const renderLineItem = (item: any, idx: number) => {
@@ -151,6 +187,88 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         </View>
 
         <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
+
+        {errors.length > 0 && (
+          <View style={styles.alertCardContainer}>
+            <TouchableOpacity
+              style={styles.alertCard}
+              onPress={() =>
+                setExpandedError(expandedError ? null : 'all')
+              }
+            >
+              <View style={styles.alertHeader}>
+                <Text style={styles.alertIcon}>⚠️</Text>
+                <View style={styles.alertContent}>
+                  <Text style={styles.alertTitle}>
+                    {errors.length} potential error{errors.length !== 1 ? 's' : ''} found
+                  </Text>
+                  <Text style={styles.alertSubtitle}>
+                    Estimated ${totalEstimatedOvercharge.toFixed(2)} in overcharges
+                  </Text>
+                </View>
+                <Text style={styles.expandIcon}>
+                  {expandedError === 'all' ? '▼' : '▶'}
+                </Text>
+              </View>
+
+              {expandedError === 'all' && (
+                <View style={styles.errorsList}>
+                  {errors.map((error) => (
+                    <TouchableOpacity
+                      key={error.id}
+                      style={styles.errorCard}
+                      onPress={() =>
+                        setExpandedError(
+                          expandedError === error.id ? null : error.id
+                        )
+                      }
+                    >
+                      <View style={styles.errorHeader}>
+                        <View
+                          style={[
+                            styles.severityBadge,
+                            { backgroundColor: getSeverityColor(error.severity) },
+                          ]}
+                        >
+                          <Text style={styles.severityLabel}>
+                            {getSeverityLabel(error.severity)}
+                          </Text>
+                        </View>
+                        <View style={styles.errorTitleContainer}>
+                          <Text style={styles.errorTypeLabel}>
+                            {error.error_type.replace(/_/g, ' ').toUpperCase()}
+                          </Text>
+                          <Text style={styles.errorOvercharge}>
+                            Est. ${error.estimated_overcharge.toFixed(2)} overcharge
+                          </Text>
+                        </View>
+                        <Text style={styles.errorExpandIcon}>
+                          {expandedError === error.id ? '▼' : '▶'}
+                        </Text>
+                      </View>
+
+                      {expandedError === error.id && (
+                        <View style={styles.errorDetails}>
+                          <Text style={styles.errorDescription}>
+                            {error.description}
+                          </Text>
+                          <View style={styles.suggestedActionBox}>
+                            <Text style={styles.suggestedActionLabel}>
+                              Suggested Action:
+                            </Text>
+                            <Text style={styles.suggestedAction}>
+                              {error.suggested_action}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={styles.infoCard}>
           <Text style={styles.fieldLabel}>Patient</Text>
           <Text style={styles.fieldValue}>{decryptedPatient || (parsed.patient_name?.value ?? parsed.patient_name)}</Text>
@@ -258,6 +376,126 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 12, color: COLORS.textSecondary },
   summaryValue: { fontSize: 16, fontWeight: 'bold', color: COLORS.text, marginTop: 4 },
   compLabel: { fontSize: 14, color: COLORS.text, marginVertical: 2 },
+  // Alert card styles
+  alertCardContainer: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+  },
+  alertCard: {
+    backgroundColor: '#FFF5F5',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.errorHigh,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  alertIcon: {
+    fontSize: 24,
+    marginRight: 12,
+    marginTop: 2,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.errorHigh,
+    marginBottom: 2,
+  },
+  alertSubtitle: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontWeight: '500',
+  },
+  expandIcon: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginLeft: 8,
+  },
+  errorsList: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#FFE0E0',
+    paddingTop: 12,
+  },
+  errorCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  errorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  severityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  severityLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  errorTitleContainer: {
+    flex: 1,
+  },
+  errorTypeLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  errorOvercharge: {
+    fontSize: 12,
+    color: COLORS.errorHigh,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  errorExpandIcon: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  errorDetails: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  errorDescription: {
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  suggestedActionBox: {
+    backgroundColor: '#F9F9F9',
+    borderRadius: 6,
+    padding: 10,
+  },
+  suggestedActionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginBottom: 4,
+  },
+  suggestedAction: {
+    fontSize: 12,
+    color: COLORS.text,
+    lineHeight: 16,
+  },
 });
 
 export default BillResults;
