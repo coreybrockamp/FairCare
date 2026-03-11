@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { DetectedError } from './errorDetection/types';
+import { decryptField } from './billParser';
 
 const getField = (val: any): string => {
   if (!val) return '';
@@ -26,8 +27,25 @@ export async function generateDisputeLetter(
   const billData = bill.parsed_data || {};
   
   // Extract real patient and provider names from billData
-  const realPatientName = getField(billData.patient_name) || patientName || 'Patient';
-  const realProviderName = getField(billData.provider_name) || providerName || 'Provider';
+  let realPatientName = getField(billData.patient_name) || patientName || 'Patient';
+  let realProviderName = getField(billData.provider_name) || providerName || 'Provider';
+  
+  // Decrypt if encrypted
+  if (billData.patient_name_enc && realPatientName) {
+    try {
+      realPatientName = await decryptField(realPatientName);
+    } catch (err) {
+      console.error('Failed to decrypt patient name:', err);
+    }
+  }
+  
+  if (billData.provider_name_enc && realProviderName) {
+    try {
+      realProviderName = await decryptField(realProviderName);
+    } catch (err) {
+      console.error('Failed to decrypt provider name:', err);
+    }
+  }
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/generate-dispute-letter';
   const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 

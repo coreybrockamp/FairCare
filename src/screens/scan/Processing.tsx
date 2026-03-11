@@ -44,7 +44,7 @@ const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ navigation, route }
         );
 
         // navigate to final results screen showing parsed bill
-        navigation.replace('BillResults', { billId: bill.id, imageUri });
+        navigation.navigate('BillResults', { billId: bill.id, imageUri });
       } catch (err: any) {
         console.error('Processing: Error during OCR:', err);
         setError(err.message || 'An error occurred while processing the image');
@@ -71,7 +71,7 @@ const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ navigation, route }
         await import('../../services/billParser').then(m =>
           m.saveParsedBill(bill.id, parsed)
         );
-        navigation.replace('BillResults', { billId: bill.id, imageUri });
+        navigation.navigate('BillResults', { billId: bill.id, imageUri });
       } catch (err: any) {
         console.error('Processing: Retry failed:', err);
         setError(err.message || 'An error occurred while processing the image');
