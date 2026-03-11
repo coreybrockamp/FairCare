@@ -1,6 +1,11 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    // enable React Native JSX support so VS Code stops complaining
+    // expo/tsconfig.base already extends from expo-module-scripts which
+    // pulls in sensible defaults, but some editors need an explicit
+    // jsx setting here as well.
+    "jsx": "react-native"
   }
 }

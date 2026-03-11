@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Dimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { StackNavigationProp } from '@react-navigation/stack';
 import UploadBill, { UploadedFile } from '../components/UploadBill';
 import { extractTextFromImage } from '../services/ocr';
 import { readImageAsBase64 } from '../services/storage';
@@ -9,7 +9,7 @@ import { readImageAsBase64 } from '../services/storage';
 const { width: screenWidth } = Dimensions.get('window');
 
 interface ScanScreenProps {
-  navigation: NativeStackNavigationProp<any>;
+  navigation: StackNavigationProp<any>;
 }
 
 const ScanScreen: React.FC<ScanScreenProps> = ({ navigation }) => {

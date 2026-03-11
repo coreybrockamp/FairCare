@@ -11,13 +11,13 @@ import {
   Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { OCRResult } from '../../services/ocr';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 interface ResultsScreenProps {
-  navigation: NativeStackNavigationProp<any>;
+  navigation: StackNavigationProp<any>;
   route: any;
 }
 

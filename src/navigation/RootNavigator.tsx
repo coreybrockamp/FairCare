@@ -62,17 +62,9 @@ const RootNavigator: React.FC = () => {
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <Stack.Screen 
-            name="Main" 
-            component={MainNavigator} 
-            options={{ animationEnabled: false }} 
-          />
+          <Stack.Screen name="Main" component={MainNavigator} />
         ) : (
-          <Stack.Screen 
-            name="Auth" 
-            component={AuthNavigator} 
-            options={{ animationEnabled: false }} 
-          />
+          <Stack.Screen name="Auth" component={AuthNavigator} />
         )}
       </Stack.Navigator>
     );

@@ -9,11 +9,11 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { extractTextFromImage } from '../../services/ocr';
 
 interface ProcessingScreenProps {
-  navigation: NativeStackNavigationProp<any>;
+  navigation: StackNavigationProp<any>;
   route: any;
 }
 

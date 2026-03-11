@@ -11,13 +11,13 @@ import {
   Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { saveImageToStorage, readImageAsBase64 } from '../../services/storage';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 interface PreviewScreenProps {
-  navigation: NativeStackNavigationProp<any>;
+  navigation: StackNavigationProp<any>;
   route: any;
 }
 
