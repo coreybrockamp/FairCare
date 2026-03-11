@@ -39,7 +39,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ navigation, route }) => {
         );
         if (!bill || !bill.id) throw new Error('Failed to create bill record');
         const parsed = await import('../../services/billParser').then(m =>
-          m.parseBill(ocrResult.fullText)
+          m.parseBill({ ocrText: ocrResult.fullText })
         );
         await import('../../services/billParser').then(m =>
           m.saveParsedBill(bill.id, parsed)

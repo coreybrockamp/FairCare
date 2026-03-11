@@ -31,13 +31,15 @@ function xorDecrypt(data: string, key: Uint8Array): string {
   return new TextDecoder().decode(output);
 }
 
-export async function parseBill(ocrText: string) {
-  // call the edge function
-  // use Supabase Functions SDK to invoke
+export async function parseBill(input: { ocrText?: string; imageBase64?: string }) {
+  // call the edge function, forwarding whichever field is provided
   const { data, error } = await supabase.functions.invoke('parse-bill', {
-    body: JSON.stringify({ ocrText }),
+    body: JSON.stringify(input),
   });
-  if (error) throw error;
+  if (error) {
+    console.error('Error invoking parse-bill:', error);
+    throw error;
+  }
   return data;
 }
 

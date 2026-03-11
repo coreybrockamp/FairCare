@@ -30,7 +30,7 @@ const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ navigation, route }
 
         // call parse-bill directly using base64 payload
         const parsed: any = await import('../../services/billParser').then(m =>
-          m.parseBill(imageBase64)
+          m.parseBill({ imageBase64 })
         );
         console.log('Processing: parse-bill returned', parsed);
 
@@ -62,7 +62,7 @@ const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ navigation, route }
     const run = async () => {
       try {
         const parsed: any = await import('../../services/billParser').then(m =>
-          m.parseBill(imageBase64)
+          m.parseBill({ imageBase64 })
         );
         const bill: any = await import('../../services/billParser').then(m =>
           m.createBill('', imageUri)

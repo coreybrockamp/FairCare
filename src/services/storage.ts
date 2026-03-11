@@ -1,5 +1,5 @@
 // import the default export so that TypeScript recognizes module properties
-import FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 
 /**
@@ -13,8 +13,7 @@ export const saveImageToStorage = async (imageUri: string, fileName: string): Pr
 
   try {
     // documentDirectory is not recognized on the exported type, cast to any
-    const appStorageDir = `${(FileSystem as any).documentDirectory}captured-bills`;
-
+const appStorageDir = `${FileSystem.documentDirectory}captured-bills`;
     // Create directory if it doesn't exist
     const dirInfo = await FileSystem.getInfoAsync(appStorageDir);
     if (!dirInfo.exists) {
