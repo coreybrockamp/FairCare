@@ -7,16 +7,20 @@ import ResultsScreen from '../screens/scan/Results';
 
 export type ScanStackParamList = {
   Camera: undefined;
-  Preview: undefined;
-  Processing: undefined;
-  Results: undefined;
+  Preview: { photoUri: string };
+  Processing: { imageUri: string; imageBase64: string; fileName: string };
+  Results: { ocrResult: any; imageUri: string; fileName: string };
 };
 
 const Stack = createStackNavigator<ScanStackParamList>();
 
 const ScanNavigator: React.FC = () => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       <Stack.Screen name="Camera" component={CameraScreen} />
       <Stack.Screen name="Preview" component={PreviewScreen} />
       <Stack.Screen name="Processing" component={ProcessingScreen} />

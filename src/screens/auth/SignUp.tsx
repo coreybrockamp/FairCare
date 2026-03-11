@@ -1,17 +1,53 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../hooks/useAuth';
+import { AuthStackParamList } from '../../navigation/AuthNavigator';
 
-const SignUpScreen: React.FC = () => {
+type SignUpScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
+
+interface SignUpScreenProps {
+  navigation: SignUpScreenNavigationProp;
+}
+
+const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const { signUp, signInWithGoogle, signInWithApple } = useAuth();
 
   const handleSignUp = async () => {
+    console.log('handleSignUp called with email:', email);
+    
+    if (!email.trim()) {
+      Alert.alert('Validation Error', 'Please enter an email address');
+      return;
+    }
+    
+    if (!password.trim()) {
+      Alert.alert('Validation Error', 'Please enter a password');
+      return;
+    }
+    
+    if (password.length < 6) {
+      Alert.alert('Validation Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
     try {
+      console.log('Calling signUp function...');
       await signUp(email, password);
+      console.log('SignUp successful!');
+      Alert.alert('Success', 'Account created successfully. Please check your email to verify your account.');
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 2000);
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      console.error('SignUp error:', error);
+      Alert.alert('Sign Up Failed', error.message || 'An error occurred during sign up');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,10 +85,10 @@ const SignUpScreen: React.FC = () => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-        <Text style={styles.buttonText}>Sign Up</Text>
+      <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleSignUp} disabled={loading}>
+        <Text style={styles.buttonText}>{loading ? 'Creating Account...' : 'Sign Up'}</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.link}>
+      <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('Login')}>
         <Text>Already have an account? Login</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn}>
@@ -101,6 +137,9 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   link: {
     alignItems: 'center',
