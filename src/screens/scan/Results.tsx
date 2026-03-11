@@ -31,15 +31,26 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ navigation, route }) => {
 
   const handleAccept = () => {
     console.log('Results: User accepted OCR results');
-    Alert.alert('Success', 'Bill information saved successfully!', [
-      {
-        text: 'Done',
-        onPress: () => {
-          // Navigate back to home or next screen
-          navigation.navigate('Home');
-        },
-      },
-    ]);
+    (async () => {
+      try {
+        // insert row and parse bill
+        const bill: any = await import('../../services/billParser').then(m =>
+          m.createBill(ocrResult.fullText, imageUri)
+        );
+        if (!bill || !bill.id) throw new Error('Failed to create bill record');
+        const parsed = await import('../../services/billParser').then(m =>
+          m.parseBill(ocrResult.fullText)
+        );
+        await import('../../services/billParser').then(m =>
+          m.saveParsedBill(bill.id, parsed)
+        );
+        // navigate to results view
+        navigation.navigate('BillResults', { billId: bill.id, imageUri });
+      } catch (err: any) {
+        console.error('Results: save error', err);
+        Alert.alert('Error', err.message || 'Failed to save bill');
+      }
+    })();
   };
 
   const handleRetake = () => {

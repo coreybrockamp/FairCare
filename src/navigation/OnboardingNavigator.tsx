@@ -12,8 +12,10 @@ export type OnboardingStackParamList = {
 
 const Stack = createStackNavigator<OnboardingStackParamList>();
 
+export type OnboardingInitialTab = 'Home' | 'Scan' | 'Bills' | 'Profile';
+
 interface Props {
-  onFinish: () => void;
+  onFinish: (initialTab?: OnboardingInitialTab) => void;
 }
 
 const OnboardingNavigator: React.FC<Props> = ({ onFinish }) => (

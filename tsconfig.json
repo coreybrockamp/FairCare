@@ -8,4 +8,8 @@
     // jsx setting here as well.
     "jsx": "react-native"
   }
+  ,
+  "exclude": [
+    "supabase/functions/**"
+  ]
 }
