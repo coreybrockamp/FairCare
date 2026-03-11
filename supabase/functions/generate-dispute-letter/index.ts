@@ -59,17 +59,7 @@ serve(async (req) => {
       .reduce((sum, err) => sum + (err.estimated_overcharge || 0), 0)
       .toFixed(2);
 
-    const systemPrompt = `You are a professional medical billing dispute letter writer. Write a firm but professional dispute letter to a healthcare provider's billing department. The letter should:
-1. Address the billing department formally
-2. Reference specific CPT codes and amounts from the bill
-3. Cite relevant patient billing rights and regulations
-4. Request itemized bill correction
-5. Set a 30-day response deadline
-6. Be clear about billing errors and potential overcharges
-7. Use professional but assertive tone
-8. Include date and patient information
-
-Do not include placeholder text - use actual values provided.`;
+    const systemPrompt = `You are a medical billing dispute expert. Write professional dispute letters. Output ONLY the letter itself starting with the date — no introduction, no explanation, no preamble. Start directly with the date line.`;
 
     const userPrompt = `Generate a professional dispute letter with these details:
 
@@ -83,7 +73,7 @@ ${errorSummary}
 
 Total Estimated Overcharge: $${totalOvercharge}
 
-Write the complete dispute letter in professional business letter format. Include today's date. Make it clear, specific, and actionable.`;
+Write the complete dispute letter in professional business letter format. Include today's date. Make it clear, specific, and actionable. Output ONLY the letter with no preamble.`;
 
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicApiKey) {

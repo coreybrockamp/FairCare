@@ -79,6 +79,9 @@ const DisputePreview: React.FC<Props> = ({ navigation, route }) => {
         {/* Letter content */}
         <View style={styles.letterCard}>
           <Text style={styles.letterText}>{letter}</Text>
+          <Text style={styles.disclaimerNote}>
+            Review and personalize before sending. Replace any placeholder text in brackets.
+          </Text>
         </View>
       </ScrollView>
 
@@ -156,6 +159,16 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: COLORS.text,
     fontFamily: 'System',
+  },
+  disclaimerNote: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
   buttonContainer: {
     flexDirection: 'row',
