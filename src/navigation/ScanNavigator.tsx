@@ -4,6 +4,7 @@ import CameraScreen from '../screens/scan/Camera';
 import PreviewScreen from '../screens/scan/Preview';
 import ProcessingScreen from '../screens/scan/Processing';
 import ResultsScreen from '../screens/scan/Results';
+import DisputePreviewScreen from '../screens/DisputePreview';
 
 export type ScanStackParamList = {
   Camera: undefined;
@@ -11,6 +12,7 @@ export type ScanStackParamList = {
   Processing: { imageUri: string; imageBase64: string; fileName: string };
   Results: { ocrResult: any; imageUri: string; fileName: string };
   BillResults: { billId: string; imageUri: string };
+  DisputePreview: { letter: string };
 };
 
 const Stack = createStackNavigator<ScanStackParamList>();
@@ -29,6 +31,7 @@ const ScanNavigator: React.FC = () => {
       <Stack.Screen name="BillResults" component={
         require('../screens/scan/BillResults').default
       } />
+      <Stack.Screen name="DisputePreview" component={DisputePreviewScreen} />
     </Stack.Navigator>
   );
 };

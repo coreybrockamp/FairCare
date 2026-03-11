@@ -29,6 +29,7 @@ import { ScanStackParamList } from '../../navigation/ScanNavigator';
 import { supabase } from '../../services/supabase';
 import { decryptField } from '../../services/billParser';
 import { runErrorDetection, DetectedError } from '../../services/errorDetection';
+import { generateDisputeLetter } from '../../services/disputeGenerator';
 
 interface Props {
   navigation: StackNavigationProp<ScanStackParamList, 'BillResults'>;
@@ -44,6 +45,7 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
   const [decryptedProvider, setDecryptedProvider] = useState<string | null>(null);
   const [errors, setErrors] = useState<DetectedError[]>([]);
   const [expandedError, setExpandedError] = useState<string | null>(null);
+  const [generatingLetter, setGeneratingLetter] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -107,6 +109,24 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
       Alert.alert('Error', err.message || 'Failed to add EOB');
     }
   };
+
+  const handleGenerateDisputeLetter = async () => {
+    try {
+      setGeneratingLetter(true);
+      const letter = await generateDisputeLetter(
+        billId,
+        errors,
+        decryptedPatient || (bill?.parsed_data?.patient_name?.value ?? bill?.parsed_data?.patient_name) || 'Patient',
+        decryptedProvider || (bill?.parsed_data?.provider_name?.value ?? bill?.parsed_data?.provider_name) || 'Provider'
+      );
+      navigation.navigate('DisputePreview', { letter });
+    } catch (err: any) {
+      console.error('Generate dispute letter error', err);
+      Alert.alert('Error', err.message || 'Failed to generate dispute letter');
+    } finally {
+      setGeneratingLetter(false);
+    }
+  };;
 
   if (loading) {
     return (
@@ -300,8 +320,24 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleAddEob}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleAddEob}
+          disabled={generatingLetter}
+        >
           <Text style={styles.buttonText}>Add EOB</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.disputeButton]}
+          onPress={handleGenerateDisputeLetter}
+          disabled={generatingLetter}
+        >
+          {generatingLetter ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>Generate Dispute Letter</Text>
+          )}
         </TouchableOpacity>
         {eob && (
           <View style={styles.comparisonSection}>
@@ -330,6 +366,7 @@ const styles = StyleSheet.create({
   cell: { flex: 1, fontSize: 13, color: COLORS.text },
   cellSmall: { flex: 1, fontSize: 11, color: COLORS.textSecondary },
   button: { backgroundColor: COLORS.primary, padding: 12, margin: 16, borderRadius: 16, alignItems: 'center' },
+  disputeButton: { backgroundColor: COLORS.primary, marginTop: 0 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   comparisonSection: { padding: 16, backgroundColor: COLORS.card, marginTop: 16, borderRadius: 16 },
   comparisonTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8, color: COLORS.primary },
