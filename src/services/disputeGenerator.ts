@@ -1,6 +1,12 @@
 import { supabase } from './supabase';
 import { DetectedError } from './errorDetection/types';
 
+const getField = (val: any): string => {
+  if (!val) return '';
+  if (typeof val === 'object' && val.value !== undefined) return String(val.value);
+  return String(val);
+};
+
 export async function generateDisputeLetter(
   billId: string,
   errors: DetectedError[],
@@ -18,6 +24,10 @@ export async function generateDisputeLetter(
   }
 
   const billData = bill.parsed_data || {};
+  
+  // Extract real patient and provider names from billData
+  const realPatientName = getField(billData.patient_name) || patientName || 'Patient';
+  const realProviderName = getField(billData.provider_name) || providerName || 'Provider';
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/generate-dispute-letter';
   const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -28,7 +38,7 @@ export async function generateDisputeLetter(
       'Authorization': 'Bearer ' + key,
       'apikey': key,
     },
-    body: JSON.stringify({ billData, errors, patientName, providerName }),
+    body: JSON.stringify({ billData, errors, patientName: realPatientName, providerName: realProviderName }),
   });
 
   const resText = await res.text();

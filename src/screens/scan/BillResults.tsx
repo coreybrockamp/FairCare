@@ -113,11 +113,12 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
   const handleGenerateDisputeLetter = async () => {
     try {
       setGeneratingLetter(true);
+      // Pass empty strings - disputeGenerator will extract real values from billData
       const letter = await generateDisputeLetter(
         billId,
         errors,
-        decryptedPatient || (bill?.parsed_data?.patient_name?.value ?? bill?.parsed_data?.patient_name) || 'Patient',
-        decryptedProvider || (bill?.parsed_data?.provider_name?.value ?? bill?.parsed_data?.provider_name) || 'Provider'
+        '',
+        ''
       );
       navigation.navigate('DisputePreview', { letter });
     } catch (err: any) {
@@ -126,7 +127,7 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
     } finally {
       setGeneratingLetter(false);
     }
-  };;
+  };
 
   if (loading) {
     return (
