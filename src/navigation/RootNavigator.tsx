@@ -2,6 +2,8 @@ import React from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../hooks/useAuth';
+import { useOnboarding } from '../hooks/useOnboarding';
+import OnboardingNavigator from './OnboardingNavigator';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 
@@ -28,6 +30,19 @@ const ErrorScreen: React.FC<{ error: string }> = ({ error }) => (
 );
 
 const RootNavigator: React.FC = () => {
+  // onboarding check added in v2
+  const { loading: onboardingLoading, showOnboarding, completeOnboarding } =
+    useOnboarding();
+
+  if (onboardingLoading) {
+    // wait until AsyncStorage has been read
+    return <LoadingScreen />;
+  }
+
+  if (showOnboarding) {
+    return <OnboardingNavigator onFinish={completeOnboarding} />;
+  }
+
   try {
     const auth = useAuth();
 
