@@ -176,6 +176,10 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
   );
 
   const lineItems: any[] = parsed.line_items || [];
+  const hasCptCodes = lineItems.some(item => {
+    const val = (item.cpt_code && typeof item.cpt_code === 'object' ? item.cpt_code.value : item.cpt_code) || '';
+    return val && !/^#\d+$/.test(String(val)) && val !== '—' && val !== '-';
+  });
 
   const renderLineItem = (item: any, idx: number) => {
     const getVal = (f: any) => {
@@ -187,14 +191,11 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
     const bg = idx % 2 === 0 ? COLORS.background : COLORS.card;
     return (
       <View key={idx} style={[styles.row, { backgroundColor: bg }]}> 
-        <Text style={styles.cell}>{getVal(item.cpt_code) || '-'}</Text>
-        <Text style={styles.cell}>{getVal(item.description) || '-'}</Text>
+        <Text style={styles.cell}>{/^#\d+$/.test(getVal(item.cpt_code) || '') ? '—' : (getVal(item.cpt_code) || '—')}</Text>
+        <Text style={styles.cell}>{['Rem/Service description','Service description',''].includes(getVal(item.description)) ? 'Unknown Service' : (getVal(item.description) || 'Unknown Service')}</Text>
         <Text style={styles.cell}>{getVal(item.quantity) || '-'}</Text>
         <Text style={styles.cell}>{getVal(item.unit_charge) || '-'}</Text>
-        <Text style={styles.cell}>{getVal(item.total_charge) || '-'}</Text>
-        {item.confidence_score !== undefined && (
-          <Text style={styles.cellSmall}>{(item.confidence_score * 100).toFixed(0)}%</Text>
-        )}
+        <Text style={styles.cell}>{getVal(item.total_charge) ? `$${parseFloat(String(getVal(item.total_charge)).replace(/[^0-9.]/g,'')).toFixed(2)}` : '-'}</Text>
       </View>
     );
   };
@@ -298,7 +299,7 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         </View>
 
         <View style={styles.tableHeader}> 
-          <Text style={styles.headerCell}>CPT</Text>
+          {hasCptCodes && <Text style={styles.headerCell}>CPT</Text>}
           <Text style={styles.headerCell}>Description</Text>
           <Text style={styles.headerCell}>Qty</Text>
           <Text style={styles.headerCell}>Unit</Text>
