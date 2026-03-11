@@ -9,6 +9,7 @@ import {
   FlatList,
   Dimensions,
 } from 'react-native';
+// icons come from expo's vector icons package which now includes proper types
 import { MaterialIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -82,12 +83,13 @@ const UploadBill: React.FC<UploadBillProps> = ({
 
       if (!result.canceled && result.assets.length > 0) {
         const asset = result.assets[0];
+        // `fileName` is the correct property on the asset type
         const file: UploadedFile = {
           uri: asset.uri,
-          name: asset.filename || `image-${Date.now()}.jpg`,
+          name: asset.fileName || `image-${Date.now()}.jpg`,
           type: 'image',
           size: asset.fileSize || 0,
-          mimeType: 'image/jpeg',
+          mimeType: asset.type || 'image/jpeg',
         };
 
         console.log('UploadBill: Image selected:', file.name);
@@ -113,13 +115,15 @@ const UploadBill: React.FC<UploadBillProps> = ({
         copyToCacheDirectory: true,
       });
 
-      if (result.type === 'success') {
+      if (!result.canceled && result.assets) {
+        // `assets` is an array of DocumentPickerAsset objects
+        const asset = result.assets[0];
         const file: UploadedFile = {
-          uri: result.uri,
-          name: result.name,
-          type: result.mimeType?.includes('pdf') ? 'pdf' : 'image',
-          size: result.size || 0,
-          mimeType: result.mimeType,
+          uri: asset.uri,
+          name: asset.name,
+          type: asset.mimeType?.includes('pdf') ? 'pdf' : 'image',
+          size: asset.size || 0,
+          mimeType: asset.mimeType,
         };
 
         console.log('UploadBill: Document selected:', file.name);

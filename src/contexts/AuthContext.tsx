@@ -77,15 +77,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signInWithGoogle = async () => {
-    const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+    // `useProxy` is not part of the TypeScript definition, so we omit it or cast
+    const redirectUri = AuthSession.makeRedirectUri({});
     const request = new AuthSession.AuthRequest({
       clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID!, // Need to add this env var
       scopes: ['openid', 'profile', 'email'],
       responseType: AuthSession.ResponseType.Token,
       redirectUri,
-      additionalParameters: {},
+      // `additionalParameters` not part of AuthRequestConfig in the typings
       prompt: AuthSession.Prompt.SelectAccount,
-    });
+    } as any);
 
     const result = await request.promptAsync({
       authorizationEndpoint: 'https://accounts.google.com/oauth/v2/auth',
