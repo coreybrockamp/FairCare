@@ -29,33 +29,39 @@ const ErrorScreen: React.FC<{ error: string }> = ({ error }) => (
 
 const RootNavigator: React.FC = () => {
   try {
-    const authContext = useAuth();
-    
-    // Ensure loading is explicitly a boolean, handle any type coercion issues
-    const isLoading = Boolean(authContext.loading);
-    const user = authContext.user;
+    const auth = useAuth();
 
-    console.log('RootNavigator: Loading state:', isLoading, 'User:', !!user);
+    console.log('[RootNavigator] Loading:', auth.loading, '| User:', !!auth.user);
 
-    if (isLoading) {
-      console.log('RootNavigator: Showing loading screen');
+    // Show loading screen while checking auth state
+    if (auth.loading === true) {
+      console.log('[RootNavigator] Showing loading screen');
       return <LoadingScreen />;
     }
 
-    const isAuthenticated = user !== null && user !== undefined && typeof user === 'object';
-    console.log('RootNavigator: Is authenticated:', isAuthenticated);
+    // Determine if user is authenticated
+    const isAuthenticated = auth.user !== null && auth.user !== undefined;
+    console.log('[RootNavigator] Is authenticated:', isAuthenticated);
 
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <Stack.Screen name="Main" component={MainNavigator} options={{ animationEnabled: false }} />
+          <Stack.Screen 
+            name="Main" 
+            component={MainNavigator} 
+            options={{ animationEnabled: false }} 
+          />
         ) : (
-          <Stack.Screen name="Auth" component={AuthNavigator} options={{ animationEnabled: false }} />
+          <Stack.Screen 
+            name="Auth" 
+            component={AuthNavigator} 
+            options={{ animationEnabled: false }} 
+          />
         )}
       </Stack.Navigator>
     );
   } catch (error) {
-    console.error('RootNavigator error:', error);
+    console.error('[RootNavigator] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error in RootNavigator';
     return <ErrorScreen error={errorMessage} />;
   }

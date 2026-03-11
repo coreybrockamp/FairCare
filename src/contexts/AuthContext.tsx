@@ -1,10 +1,19 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../services/supabase';
-import { AuthState, User } from '../types';
+import { User } from '../types';
 import * as AuthSession from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
-interface AuthContextType extends AuthState {
+/**
+ * AuthContext provides authentication state and methods
+ * loading: boolean - true while checking session, false once session check is complete
+ * user: User | null - current authenticated user or null
+ * session: any - Supabase session object
+ */
+export interface AuthContextType {
+  loading: boolean;
+  user: User | null;
+  session: any;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -19,135 +28,196 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // Explicitly use boolean primitive, never string
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    session: null,
-    loading: true as const,
-  });
+  // Separate state variables for clarity - never use strings for booleans
+  const [loading, setLoading] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<any>(null);
 
+  // Initialize auth on mount
   useEffect(() => {
-    console.log('AuthProvider: Initializing');
-    const getSession = async () => {
+    const initializeAuth = async () => {
       try {
-        console.log('AuthContext: Getting initial session');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('[Auth] Initializing auth state');
+        setLoading(true);
+
+        // Get current session
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
         if (error) {
-          console.error('AuthContext: getSession error:', error);
+          console.error('[Auth] Error getting session:', error);
+          setLoading(false);
+          return;
         }
-        console.log('AuthContext: Session retrieved:', !!session);
-        setAuthState(prevState => ({
-          ...prevState,
-          user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
-          session,
-          loading: false as const,
-        }));
-      } catch (error) {
-        console.error('AuthContext: Error getting session:', error);
-        setAuthState(prevState => ({
-          ...prevState,
-          loading: false as const,
-        }));
+
+        // Set user from session
+        if (currentSession?.user) {
+          setUser({
+            id: currentSession.user.id,
+            email: currentSession.user.email || '',
+          });
+          setSession(currentSession);
+        } else {
+          setUser(null);
+          setSession(null);
+        }
+
+        setLoading(false);
+        console.log('[Auth] Auth initialization complete. User:', !!currentSession?.user);
+      } catch (err) {
+        console.error('[Auth] Exception during initialization:', err);
+        setLoading(false);
       }
     };
 
-    getSession();
+    initializeAuth();
 
-    try {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          console.log('AuthContext: Auth state changed, event:', event);
-          setAuthState(prevState => ({
-            ...prevState,
-            user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
-            session,
-            loading: false as const,
-          }));
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        console.log('[Auth] Auth state changed:', event);
+
+        if (currentSession?.user) {
+          setUser({
+            id: currentSession.user.id,
+            email: currentSession.user.email || '',
+          });
+          setSession(currentSession);
+        } else {
+          setUser(null);
+          setSession(null);
         }
-      );
+      }
+    );
 
-      return () => {
-        console.log('AuthProvider: Unsubscribing from auth state changes');
-        subscription.unsubscribe();
-      };
-    } catch (error) {
-      console.error('AuthProvider: Error setting up onAuthStateChange:', error);
-      return () => {};
-    }
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('[Auth] Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-  };
-
-  const signUp = async (email: string, password: string) => {
-    console.log('AuthContext.signUp called with email:', email);
+  const signIn = async (email: string, password: string): Promise<void> => {
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      console.log('Supabase signUp response:', { data, error });
+      console.log('[Auth] Signing in user:', email);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
       if (error) {
-        console.error('Supabase signUp error:', error);
         throw error;
       }
-      console.log('SignUp successful, user data:', data.user);
-    } catch (error) {
-      console.error('SignUp exception:', error);
-      throw error;
+
+      console.log('[Auth] Sign in successful');
+    } catch (err) {
+      console.error('[Auth] Sign in failed:', err);
+      throw err;
     }
   };
 
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-  };
-
-  const signInWithGoogle = async () => {
-    // `useProxy` is not part of the TypeScript definition, so we omit it or cast
-    const redirectUri = AuthSession.makeRedirectUri({});
-    const request = new AuthSession.AuthRequest({
-      clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID!, // Need to add this env var
-      scopes: ['openid', 'profile', 'email'],
-      responseType: AuthSession.ResponseType.Token,
-      redirectUri,
-      // `additionalParameters` not part of AuthRequestConfig in the typings
-      prompt: AuthSession.Prompt.SelectAccount,
-    } as any);
-
-    const result = await request.promptAsync({
-      authorizationEndpoint: 'https://accounts.google.com/oauth/v2/auth',
-    });
-
-    if (result.type === 'success') {
-      const { access_token } = result.params;
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: access_token,
+  const signUp = async (email: string, password: string): Promise<void> => {
+    try {
+      console.log('[Auth] Signing up user:', email);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
       });
-      if (error) throw error;
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('[Auth] Sign up successful');
+    } catch (err) {
+      console.error('[Auth] Sign up failed:', err);
+      throw err;
     }
   };
 
-  const signInWithApple = async () => {
-    const credential = await AppleAuthentication.signInAsync({
-      requestedScopes: [
-        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-        AppleAuthentication.AppleAuthenticationScope.EMAIL,
-      ],
-    });
+  const signOut = async (): Promise<void> => {
+    try {
+      console.log('[Auth] Signing out');
+      const { error } = await supabase.auth.signOut();
 
-    const { identityToken } = credential;
-    const { error } = await supabase.auth.signInWithIdToken({
-      provider: 'apple',
-      token: identityToken!,
-    });
-    if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      setUser(null);
+      setSession(null);
+      console.log('[Auth] Sign out successful');
+    } catch (err) {
+      console.error('[Auth] Sign out failed:', err);
+      throw err;
+    }
+  };
+
+  const signInWithGoogle = async (): Promise<void> => {
+    try {
+      console.log('[Auth] Starting Google sign in');
+      const redirectUri = AuthSession.makeRedirectUri({});
+      const request = new AuthSession.AuthRequest({
+        clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID!,
+        scopes: ['openid', 'profile', 'email'],
+        responseType: AuthSession.ResponseType.Token,
+        redirectUri,
+        prompt: AuthSession.Prompt.SelectAccount,
+      } as any);
+
+      const result = await request.promptAsync({
+        authorizationEndpoint: 'https://accounts.google.com/oauth/v2/auth',
+      });
+
+      if (result.type === 'success') {
+        const { access_token } = result.params;
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: access_token,
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        console.log('[Auth] Google sign in successful');
+      }
+    } catch (err) {
+      console.error('[Auth] Google sign in failed:', err);
+      throw err;
+    }
+  };
+
+  const signInWithApple = async (): Promise<void> => {
+    try {
+      console.log('[Auth] Starting Apple sign in');
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const { identityToken } = credential;
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: identityToken!,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('[Auth] Apple sign in successful');
+    } catch (err) {
+      console.error('[Auth] Apple sign in failed:', err);
+      throw err;
+    }
   };
 
   const value: AuthContextType = {
-    user: authState.user,
-    session: authState.session,
-    loading: Boolean(authState.loading),
+    loading,
+    user,
+    session,
     signIn,
     signUp,
     signOut,
