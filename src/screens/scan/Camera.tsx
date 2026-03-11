@@ -16,6 +16,17 @@ import { StackNavigationProp } from '@react-navigation/stack';
 
 const { width: screenWidth } = Dimensions.get('window');
 
+// warm friendly palette
+const COLORS = {
+  primary: '#FF6B6B',
+  background: '#FFF8F0',
+  card: '#FFFFFF',
+  text: '#2D2D2D',
+  textSecondary: '#8B8B8B',
+  accent: '#FFD93D',
+  success: '#6BCB77',
+};
+
 interface CameraScreenProps {
   navigation: StackNavigationProp<any>;
 }
@@ -37,7 +48,7 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color="#007bff" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.text}>Requesting camera permission...</Text>
         </View>
       </SafeAreaView>
@@ -48,8 +59,8 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContent}>
-          <MaterialIcons name="camera-alt" size={64} color="#999" />
-          <Text style={styles.text}>Camera access is required to capture bills</Text>
+          <MaterialIcons name="camera-alt" size={64} color={COLORS.textSecondary} />
+          <Text style={styles.text}>We need camera access to scan your bills 😊</Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
             <Text style={styles.permissionButtonText}>Grant Camera Access</Text>
           </TouchableOpacity>
@@ -102,10 +113,10 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
         flashMode={flashMode}
       >
         {/* Document Guide Overlay */}
-        <View style={styles.guideOverlay}>
-          <View style={styles.documentGuide} />
-          <Text style={styles.guideText}>Align document with frame</Text>
-        </View>
+          <View style={styles.guideOverlay}>
+            <View style={styles.documentGuide} />
+            <Text style={styles.guideText}>Line up your bill and tap the button</Text>
+          </View>
 
         {/* Top Controls */}
         <View style={styles.topControls}>
@@ -125,16 +136,16 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
         {/* Bottom Controls */}
         <View style={styles.bottomControls}>
           <TouchableOpacity
-            style={[styles.captureButton, isCapturing && styles.captureButtonDisabled]}
-            onPress={handleCapture}
-            disabled={isCapturing}
-          >
-            {isCapturing ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <View style={styles.captureButtonInner} />
-            )}
-          </TouchableOpacity>
+              style={[styles.captureButton, isCapturing && styles.captureButtonDisabled]}
+              onPress={handleCapture}
+              disabled={isCapturing}
+            >
+              {isCapturing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <View style={styles.captureButtonInner} />
+              )}
+            </TouchableOpacity>
           <Text style={styles.captureHint}>Press to capture</Text>
         </View>
       </CameraAny>
@@ -158,14 +169,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   text: {
-    color: '#666',
+    color: COLORS.textSecondary,
     fontSize: 16,
     marginTop: 12,
     textAlign: 'center',
   },
   permissionButton: {
     marginTop: 24,
-    backgroundColor: '#007bff',
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -187,7 +198,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: 'rgba(255, 217, 61, 0.2)',
   },
   guideText: {
     color: '#fff',
@@ -231,22 +242,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#fff',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderColor: '#fff',
   },
   captureButtonDisabled: {
     opacity: 0.6,
   },
   captureButtonInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#fff',
   },
   captureHint: {

@@ -13,6 +13,16 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { ScanStackParamList } from '../../navigation/ScanNavigator';
+  // color system
+  const COLORS = {
+    primary: '#FF6B6B',
+    background: '#FFF8F0',
+    card: '#FFFFFF',
+    text: '#2D2D2D',
+    textSecondary: '#8B8B8B',
+    accent: '#FFD93D',
+    success: '#6BCB77',
+  };
 import { supabase } from '../../services/supabase';
 import { decryptField } from '../../services/billParser';
 
@@ -117,8 +127,9 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
       }
       return f ?? '';
     };
+    const bg = idx % 2 === 0 ? COLORS.background : COLORS.card;
     return (
-      <View key={idx} style={styles.row}>
+      <View key={idx} style={[styles.row, { backgroundColor: bg }]}> 
         <Text style={styles.cell}>{getVal(item.cpt_code) || '-'}</Text>
         <Text style={styles.cell}>{getVal(item.description) || '-'}</Text>
         <Text style={styles.cell}>{getVal(item.quantity) || '-'}</Text>
@@ -134,21 +145,20 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
-        <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Patient</Text>
-          <Text style={styles.value}>
-            {decryptedPatient || (parsed.patient_name?.value ?? parsed.patient_name)}
-          </Text>
-        </View>
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Provider</Text>
-          <Text style={styles.value}>
-            {decryptedProvider || (parsed.provider_name?.value ?? parsed.provider_name)}
-          </Text>
+        <View style={styles.headerCard}>
+          <Text style={styles.successTitle}>Nice work!</Text>
+          <Text style={styles.subtitle}>Here’s your bill breakdown</Text>
         </View>
 
-        <View style={styles.tableHeader}>
+        <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
+        <View style={styles.infoCard}>
+          <Text style={styles.fieldLabel}>Patient</Text>
+          <Text style={styles.fieldValue}>{decryptedPatient || (parsed.patient_name?.value ?? parsed.patient_name)}</Text>
+          <Text style={styles.fieldLabel}>Provider</Text>
+          <Text style={styles.fieldValue}>{decryptedProvider || (parsed.provider_name?.value ?? parsed.provider_name)}</Text>
+        </View>
+
+        <View style={styles.tableHeader}> 
           <Text style={styles.headerCell}>CPT</Text>
           <Text style={styles.headerCell}>Description</Text>
           <Text style={styles.headerCell}>Qty</Text>
@@ -157,11 +167,19 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         </View>
         {lineItems.map(renderLineItem)}
 
-        <View style={styles.summary}>
-          <Text>Subtotal: {parsed.subtotal?.value ?? parsed.subtotal}</Text>
-          <Text>Adjustments: {parsed.insurance_adjustments?.value ?? parsed.insurance_adjustments}</Text>
-          <Text>Patient owes: {parsed.patient_responsibility?.value ?? parsed.patient_responsibility}</Text>
-          <Text>Total due: {parsed.total_due?.value ?? parsed.total_due}</Text>
+        <View style={styles.summaryContainer}> 
+          <View style={styles.summaryCard}> 
+            <Text style={styles.summaryLabel}>Subtotal</Text>
+            <Text style={styles.summaryValue}>{parsed.subtotal?.value ?? parsed.subtotal}</Text>
+          </View>
+          <View style={styles.summaryCard}> 
+            <Text style={styles.summaryLabel}>Patient owes</Text>
+            <Text style={styles.summaryValue}>{parsed.patient_responsibility?.value ?? parsed.patient_responsibility}</Text>
+          </View>
+          <View style={styles.summaryCard}> 
+            <Text style={styles.summaryLabel}>Total due</Text>
+            <Text style={styles.summaryValue}>{parsed.total_due?.value ?? parsed.total_due}</Text>
+          </View>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleAddEob}>
@@ -170,14 +188,9 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         {eob && (
           <View style={styles.comparisonSection}>
             <Text style={styles.comparisonTitle}>Comparison with EOB</Text>
-            <Text>Billed: {parsed.total_due?.value ?? parsed.total_due}</Text>
-            <Text>
-              Insurance paid: {eobParsed.insurance_paid?.value ?? eobParsed.insurance_paid}
-            </Text>
-            <Text>
-              Patient owes:{' '}
-              {eobParsed.patient_responsibility?.value ?? eobParsed.patient_responsibility}
-            </Text>
+            <Text style={styles.compLabel}>Billed: {parsed.total_due?.value ?? parsed.total_due}</Text>
+            <Text style={styles.compLabel}>Insurance paid: {eobParsed.insurance_paid?.value ?? eobParsed.insurance_paid}</Text>
+            <Text style={styles.compLabel}>Patient owes: {eobParsed.patient_responsibility?.value ?? eobParsed.patient_responsibility}</Text>
             {/* further discrepancy logic could highlight differences */}
           </View>
         )}
@@ -187,22 +200,64 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   image: { width: '100%', height: 200, marginVertical: 10 },
   fieldGroup: { paddingHorizontal: 16, paddingVertical: 8 },
   label: { fontWeight: 'bold', fontSize: 16 },
   value: { fontSize: 16, marginTop: 4 },
-  tableHeader: { flexDirection: 'row', padding: 8, backgroundColor: '#f0f0f0' },
-  headerCell: { flex: 1, fontWeight: 'bold', fontSize: 14 },
+  tableHeader: { flexDirection: 'row', padding: 8, backgroundColor: COLORS.card, borderRadius: 8 },
+  headerCell: { flex: 1, fontWeight: 'bold', fontSize: 14, color: COLORS.primary },
   row: { flexDirection: 'row', padding: 8, borderBottomWidth: 1, borderColor: '#eee' },
-  cell: { flex: 1, fontSize: 13 },
-  cellSmall: { flex: 1, fontSize: 11, color: '#666' },
-  summary: { padding: 16 },
-  button: { backgroundColor: '#007bff', padding: 12, margin: 16, borderRadius: 8, alignItems: 'center' },
+  cell: { flex: 1, fontSize: 13, color: COLORS.text },
+  cellSmall: { flex: 1, fontSize: 11, color: COLORS.textSecondary },
+  button: { backgroundColor: COLORS.primary, padding: 12, margin: 16, borderRadius: 16, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  comparisonSection: { padding: 16, backgroundColor: '#f9f9f9', marginTop: 16 },
-  comparisonTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
+  comparisonSection: { padding: 16, backgroundColor: COLORS.card, marginTop: 16, borderRadius: 16 },
+  comparisonTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8, color: COLORS.primary },
+  // new styles for redesigned cards
+  headerCard: {
+    backgroundColor: COLORS.card,
+    margin: 16,
+    padding: 20,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  successTitle: { fontSize: 28, fontWeight: 'bold', color: COLORS.primary },
+  subtitle: { fontSize: 18, color: COLORS.textSecondary, marginTop: 4 },
+  infoCard: {
+    backgroundColor: COLORS.card,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  fieldLabel: { fontWeight: '600', fontSize: 14, color: COLORS.textSecondary, marginTop: 8 },
+  fieldValue: { fontSize: 16, color: COLORS.text, marginTop: 2 },
+  summaryContainer: { flexDirection: 'row', justifyContent: 'space-around', margin: 16 },
+  summaryCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  summaryLabel: { fontSize: 12, color: COLORS.textSecondary },
+  summaryValue: { fontSize: 16, fontWeight: 'bold', color: COLORS.text, marginTop: 4 },
+  compLabel: { fontSize: 14, color: COLORS.text, marginVertical: 2 },
 });
 
 export default BillResults;
