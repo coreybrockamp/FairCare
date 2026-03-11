@@ -19,10 +19,11 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  // Explicitly use boolean primitive, never string
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
-    loading: true,
+    loading: true as const,
   });
 
   useEffect(() => {
@@ -35,13 +36,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ...prevState,
           user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
           session,
-          loading: false,
+          loading: false as const,
         }));
       } catch (error) {
         console.error('AuthContext: Error getting session:', error);
         setAuthState(prevState => ({
           ...prevState,
-          loading: false,
+          loading: false as const,
         }));
       }
     };
@@ -55,7 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ...prevState,
           user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
           session,
-          loading: false,
+          loading: false as const,
         }));
       }
     );
@@ -132,7 +133,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const value: AuthContextType = {
-    ...authState,
+    user: authState.user,
+    session: authState.session,
+    loading: Boolean(authState.loading),
     signIn,
     signUp,
     signOut,
