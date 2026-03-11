@@ -20,6 +20,7 @@ const Stack = createStackNavigator<ScanStackParamList>();
 const ScanNavigator: React.FC = () => {
   return (
     <Stack.Navigator
+      initialRouteName="Camera"
       screenOptions={{
         headerShown: false,
       }}
