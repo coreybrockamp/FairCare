@@ -19,13 +19,19 @@ const LoadingScreen: React.FC = () => (
 );
 
 const RootNavigator: React.FC = () => {
-  const { user, loading } = useAuth();
+  const authContext = useAuth();
+  
+  // Ensure loading is explicitly a boolean, handle any type coercion issues
+  const isLoading = Boolean(authContext.loading);
+  const user = authContext.user;
 
-  if (loading === true) {
+  console.log('RootNavigator: Loading state:', isLoading, 'User:', !!user);
+
+  if (isLoading) {
     return <LoadingScreen />;
   }
 
-  const isAuthenticated = user !== null && user !== undefined;
+  const isAuthenticated = user !== null && user !== undefined && typeof user === 'object';
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

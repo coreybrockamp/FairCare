@@ -27,23 +27,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setAuthState({
-        user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
-        session,
-        loading: false,
-      });
+      try {
+        console.log('AuthContext: Getting initial session');
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('AuthContext: Session retrieved:', !!session);
+        setAuthState(prevState => ({
+          ...prevState,
+          user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
+          session,
+          loading: false,
+        }));
+      } catch (error) {
+        console.error('AuthContext: Error getting session:', error);
+        setAuthState(prevState => ({
+          ...prevState,
+          loading: false,
+        }));
+      }
     };
 
     getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setAuthState({
+        console.log('AuthContext: Auth state changed, event:', event);
+        setAuthState(prevState => ({
+          ...prevState,
           user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
           session,
           loading: false,
-        });
+        }));
       }
     );
 
