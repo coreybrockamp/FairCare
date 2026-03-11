@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../hooks/useAuth';
 import AuthNavigator from './AuthNavigator';
@@ -13,35 +13,52 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 const LoadingScreen: React.FC = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
     <ActivityIndicator size="large" color="#007bff" />
   </View>
 );
 
+const ErrorScreen: React.FC<{ error: string }> = ({ error }) => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+    <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>Navigation Error</Text>
+    <Text style={{ fontSize: 12, color: '#666', textAlign: 'center', paddingHorizontal: 20 }}>
+      {error}
+    </Text>
+  </View>
+);
+
 const RootNavigator: React.FC = () => {
-  const authContext = useAuth();
-  
-  // Ensure loading is explicitly a boolean, handle any type coercion issues
-  const isLoading = Boolean(authContext.loading);
-  const user = authContext.user;
+  try {
+    const authContext = useAuth();
+    
+    // Ensure loading is explicitly a boolean, handle any type coercion issues
+    const isLoading = Boolean(authContext.loading);
+    const user = authContext.user;
 
-  console.log('RootNavigator: Loading state:', isLoading, 'User:', !!user);
+    console.log('RootNavigator: Loading state:', isLoading, 'User:', !!user);
 
-  if (isLoading) {
-    return <LoadingScreen />;
+    if (isLoading) {
+      console.log('RootNavigator: Showing loading screen');
+      return <LoadingScreen />;
+    }
+
+    const isAuthenticated = user !== null && user !== undefined && typeof user === 'object';
+    console.log('RootNavigator: Is authenticated:', isAuthenticated);
+
+    return (
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {isAuthenticated ? (
+          <Stack.Screen name="Main" component={MainNavigator} options={{ animationEnabled: false }} />
+        ) : (
+          <Stack.Screen name="Auth" component={AuthNavigator} options={{ animationEnabled: false }} />
+        )}
+      </Stack.Navigator>
+    );
+  } catch (error) {
+    console.error('RootNavigator error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error in RootNavigator';
+    return <ErrorScreen error={errorMessage} />;
   }
-
-  const isAuthenticated = user !== null && user !== undefined && typeof user === 'object';
-
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
-        <Stack.Screen name="Main" component={MainNavigator} options={{ animationEnabled: false }} />
-      ) : (
-        <Stack.Screen name="Auth" component={AuthNavigator} options={{ animationEnabled: false }} />
-      )}
-    </Stack.Navigator>
-  );
 };
 
 export default RootNavigator;

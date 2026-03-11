@@ -27,10 +27,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   useEffect(() => {
+    console.log('AuthProvider: Initializing');
     const getSession = async () => {
       try {
         console.log('AuthContext: Getting initial session');
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('AuthContext: getSession error:', error);
+        }
         console.log('AuthContext: Session retrieved:', !!session);
         setAuthState(prevState => ({
           ...prevState,
@@ -49,19 +53,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     getSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('AuthContext: Auth state changed, event:', event);
-        setAuthState(prevState => ({
-          ...prevState,
-          user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
-          session,
-          loading: false as const,
-        }));
-      }
-    );
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('AuthContext: Auth state changed, event:', event);
+          setAuthState(prevState => ({
+            ...prevState,
+            user: session?.user ? { id: session.user.id, email: session.user.email! } : null,
+            session,
+            loading: false as const,
+          }));
+        }
+      );
 
-    return () => subscription.unsubscribe();
+      return () => {
+        console.log('AuthProvider: Unsubscribing from auth state changes');
+        subscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error('AuthProvider: Error setting up onAuthStateChange:', error);
+      return () => {};
+    }
   }, []);
 
   const signIn = async (email: string, password: string) => {
