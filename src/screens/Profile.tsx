@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Updates from 'expo-updates';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { Bill, EOB } from '../types/database';
@@ -42,6 +44,19 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
+  // temporary dev helper to clear the onboarding flag so the flow shows again
+  const handleResetOnboarding = async () => {
+    try {
+      await AsyncStorage.removeItem('onboardingComplete');
+      Alert.alert('Onboarding reset', 'The onboarding flag has been cleared. The app will reload now.');
+      // reload the JS bundle so the root navigator re-reads storage
+      await Updates.reloadAsync();
+    } catch (err: any) {
+      console.error('[Profile] reset onboarding failed', err);
+      Alert.alert('Error', err.message || 'Unable to reset onboarding');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text>Profile Screen</Text>
@@ -56,6 +71,13 @@ const ProfileScreen: React.FC = () => {
 
       <TouchableOpacity style={styles.button} onPress={signOut}>
         <Text style={styles.buttonText}>Sign Out</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, styles.resetButton]}
+        onPress={handleResetOnboarding}
+      >
+        <Text style={styles.buttonText}>Reset Onboarding</Text>
       </TouchableOpacity>
     </View>
   );
@@ -75,6 +97,9 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
+  },
+  resetButton: {
+    backgroundColor: '#ff9500',
   },
 });
 
