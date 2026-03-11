@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Updates from 'expo-updates';
+import { useOnboarding } from '../contexts/OnboardingContext';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { Bill, EOB } from '../types/database';
@@ -45,12 +44,13 @@ const ProfileScreen: React.FC = () => {
   };
 
   // temporary dev helper to clear the onboarding flag so the flow shows again
+  const { resetOnboarding } = useOnboarding();
   const handleResetOnboarding = async () => {
     try {
-      await AsyncStorage.removeItem('onboardingComplete');
-      Alert.alert('Onboarding reset', 'The onboarding flag has been cleared. The app will reload now.');
-      // reload the JS bundle so the root navigator re-reads storage
-      await Updates.reloadAsync();
+      await resetOnboarding();
+      Alert.alert('Onboarding reset', 'The onboarding flag has been cleared.');
+      // RootNavigator consumes the context; when showOnboarding becomes true
+      // the onboarding stack will replace the main UI automatically.
     } catch (err: any) {
       console.error('[Profile] reset onboarding failed', err);
       Alert.alert('Error', err.message || 'Unable to reset onboarding');

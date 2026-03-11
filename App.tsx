@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { OnboardingProvider } from './src/contexts/OnboardingContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
 class ErrorBoundary extends React.Component<
@@ -42,7 +43,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <NavigationContainer
+          <OnboardingProvider>
+            <NavigationContainer
           fallback={
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <Text>Loading Navigation...</Text>
@@ -51,7 +53,8 @@ export default function App() {
           onReady={() => console.log('NavigationContainer ready')}
         >
           <RootNavigator />
-        </NavigationContainer>
+            </NavigationContainer>
+          </OnboardingProvider>
       </AuthProvider>
     </ErrorBoundary>
   );
