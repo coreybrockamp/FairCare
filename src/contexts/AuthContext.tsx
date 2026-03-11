@@ -215,7 +215,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const value: AuthContextType = {
-    loading,
+    loading: loading as boolean,
     user,
     session,
     signIn,

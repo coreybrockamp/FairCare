@@ -31,10 +31,11 @@ const RootNavigator: React.FC = () => {
   try {
     const auth = useAuth();
 
-    console.log('[RootNavigator] Loading:', auth.loading, '| User:', !!auth.user);
+    const loadingValue: boolean = auth.loading as boolean;
+    console.log('[RootNavigator] Loading:', loadingValue, '| User:', !!auth.user);
 
     // Show loading screen while checking auth state
-    if (auth.loading === true) {
+    if (loadingValue === true) {
       console.log('[RootNavigator] Showing loading screen');
       return <LoadingScreen />;
     }
