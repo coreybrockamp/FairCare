@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { extractTextFromImage } from '../../services/ocr';
+// OCR no longer used; parsing happens via parse-bill edge function
 
 interface ProcessingScreenProps {
   navigation: StackNavigationProp<any>;
@@ -25,23 +25,26 @@ const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ navigation, route }
   useEffect(() => {
     const processImage = async () => {
       try {
-        console.log('Processing: Starting OCR extraction...');
+        console.log('Processing: Starting bill parse via edge function');
         setIsProcessing(true);
 
-        const ocrResult = await extractTextFromImage(imageUri, imageBase64);
+        // call parse-bill directly using base64 payload
+        const parsed: any = await import('../../services/billParser').then(m =>
+          m.parseBill(imageBase64)
+        );
+        console.log('Processing: parse-bill returned', parsed);
 
-        console.log('Processing: OCR complete, success:', ocrResult.success);
+        // create database row and save parsed data
+        const bill: any = await import('../../services/billParser').then(m =>
+          m.createBill('', imageUri)
+        );
+        if (!bill || !bill.id) throw new Error('Failed to create bill record');
+        await import('../../services/billParser').then(m =>
+          m.saveParsedBill(bill.id, parsed)
+        );
 
-        if (!ocrResult.success) {
-          throw new Error(ocrResult.error || 'Failed to extract text from image');
-        }
-
-        // Navigate to results screen
-        navigation.replace('Results', {
-          ocrResult,
-          imageUri,
-          fileName,
-        });
+        // navigate to final results screen showing parsed bill
+        navigation.replace('BillResults', { billId: bill.id, imageUri });
       } catch (err: any) {
         console.error('Processing: Error during OCR:', err);
         setError(err.message || 'An error occurred while processing the image');
@@ -53,29 +56,29 @@ const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ navigation, route }
   }, [imageUri, imageBase64, fileName, navigation]);
 
   const handleRetry = () => {
+    // same as initial processing
     setError(null);
     setIsProcessing(true);
-    const processImage = async () => {
+    const run = async () => {
       try {
-        console.log('Processing: Retrying OCR extraction...');
-        const ocrResult = await extractTextFromImage(imageUri, imageBase64);
-
-        if (!ocrResult.success) {
-          throw new Error(ocrResult.error || 'Failed to extract text from image');
-        }
-
-        navigation.replace('Results', {
-          ocrResult,
-          imageUri,
-          fileName,
-        });
+        const parsed: any = await import('../../services/billParser').then(m =>
+          m.parseBill(imageBase64)
+        );
+        const bill: any = await import('../../services/billParser').then(m =>
+          m.createBill('', imageUri)
+        );
+        if (!bill || !bill.id) throw new Error('Failed to create bill record');
+        await import('../../services/billParser').then(m =>
+          m.saveParsedBill(bill.id, parsed)
+        );
+        navigation.replace('BillResults', { billId: bill.id, imageUri });
       } catch (err: any) {
         console.error('Processing: Retry failed:', err);
         setError(err.message || 'An error occurred while processing the image');
         setIsProcessing(false);
       }
     };
-    processImage();
+    run();
   };
 
   const handleCancel = () => {
@@ -91,7 +94,7 @@ const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ navigation, route }
               <ActivityIndicator size="large" color="#007bff" />
             </View>
             <Text style={styles.title}>Processing Bill</Text>
-            <Text style={styles.subtitle}>Extracting text from image...</Text>
+            <Text style={styles.subtitle}>Parsing bill image...</Text>
           </>
         ) : error ? (
           <>

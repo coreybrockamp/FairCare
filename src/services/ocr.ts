@@ -1,20 +1,12 @@
 import { supabase } from './supabase';
 
-export interface TextBlock {
-  text: string;
-  confidence: number;
-  boundingBox: {
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  };
-}
-
+// previously this module defined detailed OCR structures, but the Google
+// Vision service is no longer used.  We keep a minimal result shape for
+// compatibility with existing screens.
 export interface OCRResult {
   success: boolean;
   fullText: string;
-  textBlocks: TextBlock[];
+  textBlocks: any[]; // placeholder
   language: string;
   error?: string;
 }
@@ -29,46 +21,15 @@ export const extractTextFromImage = async (
   imageUri: string,
   imageBase64: string
 ): Promise<OCRResult> => {
-  console.log('OCR: Starting text extraction from image:', imageUri);
-
-  try {
-    // Call the Supabase Edge Function that proxies to Google Cloud Vision
-    const { data, error } = await supabase.functions.invoke('ocr-extract', {
-      body: {
-        imageBase64,
-        imageUri,
-      },
-    });
-
-    if (error) {
-      console.error('OCR: Edge Function error:', error);
-      return {
-        success: false,
-        fullText: '',
-        textBlocks: [],
-        language: '',
-        error: error.message || 'Failed to process image',
-      };
-    }
-
-    console.log('OCR: Successfully extracted text, blocks:', data?.textBlocks?.length || 0);
-
-    return {
-      success: true,
-      fullText: data.fullText || '',
-      textBlocks: data.textBlocks || [],
-      language: data.language || 'unknown',
-    };
-  } catch (error: any) {
-    console.error('OCR: Exception during text extraction:', error);
-    return {
-      success: false,
-      fullText: '',
-      textBlocks: [],
-      language: '',
-      error: error.message || 'Unknown error during OCR',
-    };
-  }
+  // no-op; parsing now happens in parse-bill, so we can return an empty
+  // successful result to satisfy callers.
+  console.warn('extractTextFromImage called but OCR disabled');
+  return {
+    success: true,
+    fullText: '',
+    textBlocks: [],
+    language: '',
+  };
 };
 
 /**
@@ -114,13 +75,11 @@ export const uploadAndProcessImage = async (
     onProgress?.(50);
     console.log('OCR: Image uploaded to:', storagePath);
 
-    // Process with OCR
-    const ocrResult = await extractTextFromImage(storagePath, imageBase64);
+    // we no longer run OCR; the caller should hit parse-bill directly
     onProgress?.(100);
-
     return {
       storagePath: uploadData?.path || storagePath,
-      ocrResult,
+      ocrResult: { success: true, fullText: '', textBlocks: [], language: '' },
     };
   } catch (error: any) {
     console.error('OCR: Upload and processing failed:', error);
