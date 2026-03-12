@@ -42,14 +42,35 @@ const HomeScreen: React.FC = () => {
   const [totalDue, setTotalDue] = useState('$0.00');
   const [recentBills, setRecentBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const name = user?.email?.split('@')[0] || 'there';
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  // Fetch profile name on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('first_name')
+          .eq('user_id', user.id)
+          .single();
+        if (data?.first_name) {
+          setProfileName(data.first_name);
+        }
+      } catch (err) {
+        // No profile yet, will use fallback
+      }
+    };
+    fetchProfile();
+  }, [user?.id]);
 
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    const namePart = profileName ? `, ${profileName.charAt(0).toUpperCase() + profileName.slice(1)}` : '';
+    if (hour >= 5 && hour < 12) return `Good morning${namePart}`;
+    if (hour >= 12 && hour < 18) return `Good afternoon${namePart}`;
+    return `Good evening${namePart}`;
   };
 
   // Hide header on this screen
@@ -146,7 +167,7 @@ const HomeScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Greeting */}
-        <Text style={styles.greeting}>{getGreeting()} 👋</Text>
+        <Text style={styles.greeting}>{getGreeting()}! 👋</Text>
         <Text style={styles.subheading}>Your bills are safe with us</Text>
 
         {/* Stats Row */}
@@ -251,10 +272,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   greeting: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: COLORS.text,
     marginHorizontal: 16,
+    marginTop: 8,
     marginBottom: 2,
   },
   subheading: {

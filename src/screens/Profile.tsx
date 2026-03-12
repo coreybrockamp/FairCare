@@ -40,6 +40,7 @@ const ProfileScreen: React.FC = () => {
   const [zip, setZip] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
 
   // Load profile on mount
   useEffect(() => {
@@ -64,6 +65,7 @@ const ProfileScreen: React.FC = () => {
           setCity(data.city || '');
           setState(data.state || '');
           setZip(data.zip || '');
+          setIsEditing(false);
         }
       } catch (err: any) {
         console.error('Profile load error:', err);
@@ -97,6 +99,7 @@ const ProfileScreen: React.FC = () => {
         .eq('user_id', user.id);
 
       if (error) throw error;
+      setIsEditing(false);
       Alert.alert('Success', 'Profile saved successfully');
     } catch (err: any) {
       console.error('Profile save error:', err);
@@ -175,33 +178,36 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>First Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditing && styles.inputDisabled]}
               placeholder="John"
               value={firstName}
               onChangeText={setFirstName}
               placeholderTextColor={COLORS.textSecondary}
+              editable={isEditing}
             />
           </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Last Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditing && styles.inputDisabled]}
               placeholder="Doe"
               value={lastName}
               onChangeText={setLastName}
               placeholderTextColor={COLORS.textSecondary}
+              editable={isEditing}
             />
           </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Mailing Address</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditing && styles.inputDisabled]}
               placeholder="123 Main Street"
               value={address}
               onChangeText={setAddress}
               placeholderTextColor={COLORS.textSecondary}
+              editable={isEditing}
             />
           </View>
 
@@ -209,22 +215,24 @@ const ProfileScreen: React.FC = () => {
             <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
               <Text style={styles.label}>City</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, !isEditing && styles.inputDisabled]}
                 placeholder="San Francisco"
                 value={city}
                 onChangeText={setCity}
                 placeholderTextColor={COLORS.textSecondary}
+                editable={isEditing}
               />
             </View>
             <View style={[styles.fieldGroup, { flex: 0.4 }]}>
               <Text style={styles.label}>State</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, !isEditing && styles.inputDisabled]}
                 placeholder="CA"
                 value={state}
                 onChangeText={setState}
                 maxLength={2}
                 placeholderTextColor={COLORS.textSecondary}
+                editable={isEditing}
               />
             </View>
           </View>
@@ -232,24 +240,27 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>ZIP Code</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditing && styles.inputDisabled]}
               placeholder="94105"
               value={zip}
               onChangeText={setZip}
               keyboardType="number-pad"
               placeholderTextColor={COLORS.textSecondary}
+              editable={isEditing}
             />
           </View>
 
           <TouchableOpacity
-            style={[styles.button, styles.saveButton]}
-            onPress={handleSaveProfile}
+            style={[styles.button, isEditing ? styles.saveButton : styles.editButton]}
+            onPress={isEditing ? handleSaveProfile : () => setIsEditing(true)}
             disabled={saving}
           >
             {saving ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.buttonText}>Save Profile</Text>
+              <Text style={[styles.buttonText, !isEditing && styles.editButtonText]}>
+                {isEditing ? 'Save Profile' : 'Edit Profile'}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -385,10 +396,23 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
+  editButton: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+  },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  editButtonText: {
+    color: COLORS.primary,
+  },
+  inputDisabled: {
+    backgroundColor: '#F0F0F0',
+    borderColor: '#E8E8E8',
+    color: COLORS.text,
   },
   actionsCard: {
     backgroundColor: COLORS.card,
