@@ -64,13 +64,17 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
           .eq('bill_id', billId)
           .single();
         if (eobData) setEob(eobData);
-        if (data.parsed_data?.patient_name) {
-          setDecryptedPatient(await decryptField(data.parsed_data.patient_name));
-        }
-        if (data.parsed_data?.provider_name) {
-          setDecryptedProvider(await decryptField(data.parsed_data.provider_name));
-        }
+        // Extract patient/provider names from parsed data
+        const rawPatient = data.parsed_data?.patient_name;
+        const rawProvider = data.parsed_data?.provider_name;
+        // Handle both {value, confidence_score} objects and plain strings
+        const patientVal = (rawPatient && typeof rawPatient === 'object' && rawPatient.value) ? rawPatient.value : String(rawPatient || '');
+        const providerVal = (rawProvider && typeof rawProvider === 'object' && rawProvider.value) ? rawProvider.value : String(rawProvider || '');
+        setDecryptedPatient(patientVal);
+        setDecryptedProvider(providerVal);
         // Run error detection
+        console.log('PARSED CPT CODES:', JSON.stringify((data.parsed_data?.line_items || []).map((i: any) => i.cpt_code)));
+        console.log('FULL PARSED DATA:', JSON.stringify(data.parsed_data, null, 2));
         const detectedErrors = runErrorDetection(data.parsed_data || {});
         setErrors(detectedErrors);
       } catch (err: any) {

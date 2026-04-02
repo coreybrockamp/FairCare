@@ -75,13 +75,12 @@ export async function saveParsedEob(billId: string, parsedData: any) {
 export async function saveParsedBill(billId: string, parsedData: any) {
   const key = await deriveKey();
   const toStore = { ...parsedData };
+  // Store names as plain text for now - encryption to be re-implemented with proper key management
   if (toStore.patient_name) {
-    toStore.patient_name = xorEncrypt(toStore.patient_name, key);
-    toStore.patient_name_enc = true;
+    toStore.patient_name = typeof toStore.patient_name === 'object' ? (toStore.patient_name.value || '') : toStore.patient_name;
   }
   if (toStore.provider_name) {
-    toStore.provider_name = xorEncrypt(toStore.provider_name, key);
-    toStore.provider_name_enc = true;
+    toStore.provider_name = typeof toStore.provider_name === 'object' ? (toStore.provider_name.value || '') : toStore.provider_name;
   }
 
   const { data, error } = await supabase
@@ -95,6 +94,17 @@ export async function saveParsedBill(billId: string, parsedData: any) {
 }
 
 export async function decryptField(encrypted: string) {
-  const key = await deriveKey();
-  return xorDecrypt(encrypted, key);
+  if (!encrypted || typeof encrypted !== 'string') return encrypted;
+  // If it looks like plain text (not base64), return as-is
+  const base64Regex = /^[A-Za-z0-9+/]+=*$/;
+  if (!base64Regex.test(encrypted) || encrypted.length < 8) return encrypted;
+  try {
+    const key = await deriveKey();
+    const decrypted = xorDecrypt(encrypted, key);
+    // If decrypted result is garbled (non-printable chars), return original
+    if (/[^ -~]/.test(decrypted)) return encrypted;
+    return decrypted;
+  } catch(e) {
+    return encrypted;
+  }
 }

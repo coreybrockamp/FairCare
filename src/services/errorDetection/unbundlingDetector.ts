@@ -15,6 +15,14 @@ const parseAmount = (val: any): number => {
 // CCI (Correct Coding Initiative) edit pairs - codes that should be bundled when billed together
 // Format: [primary_code, secondary_code, should_bundle]
 const CCI_PAIRS = [
+  // Lab panel unbundling - components that should be billed as comprehensive panel (80053)
+  ['80048', '82040', true], // Basic metabolic panel + albumin (should be 80053)
+  ['80048', '84145', true], // Basic metabolic panel + prealbumin (should be 80053)
+  ['80048', '84155', true], // Basic metabolic panel + protein (should be 80053)
+  ['80048', '82040', true], // BMP + albumin
+  ['80050', '80053', true], // General health panel includes comprehensive metabolic
+  ['80053', '82040', true], // Comprehensive metabolic panel + albumin (already included)
+  ['80053', '84155', true], // Comprehensive metabolic panel + protein (already included)
   ['99213', '90834', true], // Office visit + therapy on same day
   ['99214', '90834', true], // Office visit + therapy on same day
   ['99215', '90834', true], // Office visit + therapy on same day

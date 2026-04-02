@@ -85,9 +85,27 @@ Return this exact JSON structure:
 
     let parsed = {};
     try {
-      parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      // Clean the text and try to parse
+      const cleaned = text.replace(/```json|```/g, "").trim();
+      parsed = JSON.parse(cleaned);
     } catch(e) {
-      parsed = { raw: text };
+      // If JSON has syntax errors, ask Claude to fix it
+      try {
+        const fixResp = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+          body: JSON.stringify({
+            model: "claude-3-haiku-20240307",
+            max_tokens: 4000,
+            messages: [{ role: "user", content: "Fix this JSON so it is valid. Return ONLY the fixed JSON with no explanation or backticks:\n" + text }]
+          })
+        });
+        const fixData = await fixResp.json();
+        const fixedText = fixData.content?.[0]?.text || "{}";
+        parsed = JSON.parse(fixedText.replace(/```json|```/g, "").trim());
+      } catch(e2) {
+        parsed = { raw: text };
+      }
     }
 
     return new Response(JSON.stringify(parsed), { headers: { "Content-Type": "application/json" } });

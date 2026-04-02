@@ -31,6 +31,7 @@ export function detectUpcoding(bill: ParsedBill): DetectedError[] {
 
   // Check if highest complexity code (99215) is used
   const has99215 = cptCodes.some((code) => code === '99215');
+  const has99213 = cptCodes.some((code) => code === '99213');
 
   if (has99215) {
     const item99215 = lineItems.find((item) => getFieldValue(item.cpt_code) === '99215');
@@ -46,7 +47,7 @@ export function detectUpcoding(bill: ParsedBill): DetectedError[] {
         severity: 'medium',
         confidence: 0.75,
         affected_line_items: [lineItems.indexOf(item99215)],
-        description: `Your office visit was billed at the highest complexity level (99215, ~$${typicalAmount}). A typical established patient visit is coded as 99213 (~$${typicalLowerCode}). Potential overcharge: $${estimatedOvercharge.toFixed(2)}.`,
+        description: has99213 ? `Your bill contains both a routine (99213) and highest complexity (99215) office visit on the same day. This is a common upcoding pattern. The 99215 charge of $${chargedAmount.toFixed(2)} may not be justified.` : `Your office visit was billed at the highest complexity level (99215, ~$${typicalAmount}). A typical established patient visit is coded as 99213 (~$${typicalLowerCode}). Potential overcharge: $${estimatedOvercharge.toFixed(2)}.`,
         estimated_overcharge: Math.max(0, estimatedOvercharge),
         suggested_action: `Ask the provider why the highest complexity code was used. Request adjustment to 99213 if your visit was routine.`,
       });
