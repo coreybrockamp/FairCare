@@ -1,91 +1,103 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
-// Setup type definitions for built-in Supabase Runtime APIs
 import "@supabase/functions-js/edge-runtime.d.ts"
 
 Deno.serve(async (req) => {
   try {
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
     }
 
     const body = await req.json();
-    const ocrText: string | undefined = body.ocrText;
+    const imageBase64 = body.imageBase64;
 
-    if (!ocrText) {
-      return new Response(JSON.stringify({ error: 'Missing ocrText field' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (!imageBase64) {
+      return new Response(JSON.stringify({ error: 'Missing imageBase64' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // call Claude to extract EOB information
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) {
-      throw new Error('Missing ANTHROPIC_API_KEY');
+      return new Response(JSON.stringify({ error: 'Missing API key' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const prompt = `Extract data from this insurance EOB text as JSON with fields: insurance_paid, patient_responsibility, deductible_applied, copay, coinsurance, out_of_pocket, line_items (each with allowed_amount and billed_amount). Include confidence_score for each field. Text:\n"""\n${ocrText}\n"""`;
+    const systemPrompt = `You are a medical insurance EOB (Explanation of Benefits) expert. Extract structured data from EOB documents accurately.
 
-    const response = await fetch('https://api.anthropic.com/v1/complete', {
-      method: 'POST',
+CRITICAL RULES:
+- Return ONLY valid JSON, no explanation, no markdown, no backticks
+- Extract EVERY line item — do not skip any services
+- All monetary values should be strings with no $ sign (e.g. "150.00")
+- If a field is not found, use null
+- Add confidence_score (0-1) for each field based on how clearly it appears on the document
+
+Return this exact JSON structure:
+{
+  "insurance_company": {"value": "...", "confidence_score": 0.95},
+  "member_name": {"value": "...", "confidence_score": 0.95},
+  "claim_date": {"value": "...", "confidence_score": 0.9},
+  "line_items": [
+    {
+      "description": "Office Visit",
+      "billed_amount": {"value": "250.00", "confidence_score": 0.95},
+      "allowed_amount": {"value": "180.00", "confidence_score": 0.9},
+      "insurance_paid": {"value": "144.00", "confidence_score": 0.9},
+      "patient_responsibility": {"value": "36.00", "confidence_score": 0.9}
+    }
+  ],
+  "total_billed": {"value": "...", "confidence_score": 0.9},
+  "total_allowed": {"value": "...", "confidence_score": 0.9},
+  "total_insurance_paid": {"value": "...", "confidence_score": 0.9},
+  "total_patient_responsibility": {"value": "...", "confidence_score": 0.95}
+}`;
+
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: 'claude-2',
-        prompt,
-        max_tokens: 1000,
+        model: "claude-3-haiku-20240307",
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: imageBase64 } },
+            { type: "text", text: "Extract all data from this EOB document. Remember: include ALL line items and return ONLY valid JSON." }
+          ]
+        }]
       }),
     });
 
-    const text = await response.text();
-    let parsed: any = {};
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || "{}";
+
+    let parsed = {};
     try {
-      parsed = JSON.parse(text);
-    } catch (e) {
-      console.error('parse-eob failed to JSON parse', text);
-      parsed = { raw: text };
+      const cleaned = text.replace(/```json|```/g, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch(e) {
+      // If JSON has syntax errors, ask Claude to fix it
+      try {
+        const fixResp = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+          body: JSON.stringify({
+            model: "claude-3-haiku-20240307",
+            max_tokens: 4000,
+            messages: [{ role: "user", content: "Fix this JSON so it is valid. Return ONLY the fixed JSON with no explanation or backticks:\n" + text }]
+          })
+        });
+        const fixData = await fixResp.json();
+        const fixedText = fixData.content?.[0]?.text || "{}";
+        parsed = JSON.parse(fixedText.replace(/```json|```/g, "").trim());
+      } catch(e2) {
+        parsed = { raw: text };
+      }
     }
 
-    return new Response(JSON.stringify(parsed), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify(parsed), { headers: { "Content-Type": "application/json" } });
+
   } catch (err) {
-    console.error('parse-eob error', err);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 });
-
-Deno.serve(async (req) => {
-  const { name } = await req.json()
-  const data = {
-    message: `Hello ${name}!`,
-  }
-
-  return new Response(
-    JSON.stringify(data),
-    { headers: { "Content-Type": "application/json" } },
-  )
-})
-
-/* To invoke locally:
-
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
-  2. Make an HTTP request:
-
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/parse-eob' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
-    --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
-
-*/

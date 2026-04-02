@@ -5,6 +5,8 @@ import PreviewScreen from '../screens/scan/Preview';
 import ProcessingScreen from '../screens/scan/Processing';
 import ResultsScreen from '../screens/scan/Results';
 import DisputePreviewScreen from '../screens/DisputePreview';
+import EOBUploadScreen from '../screens/EOBUpload';
+import EOBComparisonScreen from '../screens/EOBComparison';
 
 export type ScanStackParamList = {
   Camera: undefined;
@@ -13,6 +15,8 @@ export type ScanStackParamList = {
   Results: { ocrResult: any; imageUri: string; fileName: string };
   BillResults: { billId: string; imageUri: string };
   DisputePreview: { letter: string };
+  EOBUpload: { billId: string };
+  EOBComparison: { billId: string; eobId: string };
 };
 
 const Stack = createStackNavigator<ScanStackParamList>();
@@ -33,6 +37,8 @@ const ScanNavigator: React.FC = () => {
         require('../screens/scan/BillResults').default
       } />
       <Stack.Screen name="DisputePreview" component={DisputePreviewScreen} />
+      <Stack.Screen name="EOBUpload" component={EOBUploadScreen} />
+      <Stack.Screen name="EOBComparison" component={EOBComparisonScreen} />
     </Stack.Navigator>
   );
 };

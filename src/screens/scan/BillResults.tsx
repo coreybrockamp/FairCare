@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { ScanStackParamList } from '../../navigation/ScanNavigator';
+import EOBPromptModal from '../../components/EOBPromptModal';
   // color system
   const COLORS = {
     primary: '#FF6B6B',
@@ -46,6 +48,14 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
   const [errors, setErrors] = useState<DetectedError[]>([]);
   const [expandedError, setExpandedError] = useState<string | null>(null);
   const [generatingLetter, setGeneratingLetter] = useState(false);
+  const [showEobPrompt, setShowEobPrompt] = useState(false);
+  const eobTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (eobTimerRef.current) clearTimeout(eobTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -77,6 +87,12 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         console.log('FULL PARSED DATA:', JSON.stringify(data.parsed_data, null, 2));
         const detectedErrors = runErrorDetection(data.parsed_data || {});
         setErrors(detectedErrors);
+        // Show EOB prompt 2 seconds after successful load (once per bill)
+        const eobKey = `eob_prompt_shown_${billId}`;
+        const alreadyShown = await AsyncStorage.getItem(eobKey);
+        if (!alreadyShown && !eobData) {
+          eobTimerRef.current = setTimeout(() => setShowEobPrompt(true), 2000);
+        }
       } catch (err: any) {
         console.error('BillResults load error', err);
         Alert.alert('Error', err.message || 'Failed to load bill');
@@ -355,6 +371,16 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
       </ScrollView>
+
+      <EOBPromptModal
+        billId={billId}
+        visible={showEobPrompt}
+        onUpload={() => {
+          setShowEobPrompt(false);
+          navigation.navigate('EOBUpload', { billId });
+        }}
+        onDismiss={() => setShowEobPrompt(false)}
+      />
     </SafeAreaView>
   );
 };
