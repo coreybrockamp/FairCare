@@ -74,14 +74,12 @@ const CameraScreen: React.FC<CameraScreenProps> = ({ navigation }) => {
 
     setIsCapturing(true);
     try {
-      console.log('Camera: Capturing image...');
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.95,
         base64: false,
         exif: false,
       });
 
-      console.log('Camera: Image captured, processing...');
       // Pass to preview screen with the photo URI
       navigation.navigate('Preview', { photoUri: photo.uri });
     } catch (error: any) {

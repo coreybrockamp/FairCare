@@ -65,7 +65,6 @@ const UploadBill: React.FC<UploadBillProps> = ({
 
     setIsSelecting(true);
     try {
-      console.log('UploadBill: Requesting image picker permission...');
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permission.granted) {
@@ -74,7 +73,6 @@ const UploadBill: React.FC<UploadBillProps> = ({
         return;
       }
 
-      console.log('UploadBill: Opening image picker...');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
@@ -92,7 +90,6 @@ const UploadBill: React.FC<UploadBillProps> = ({
           mimeType: asset.type || 'image/jpeg',
         };
 
-        console.log('UploadBill: Image selected:', file.name);
         setSelectedFiles([...selectedFiles, file]);
         onFileSelected(file);
       }
@@ -109,7 +106,6 @@ const UploadBill: React.FC<UploadBillProps> = ({
 
     setIsSelecting(true);
     try {
-      console.log('UploadBill: Opening document picker...');
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*'],
         copyToCacheDirectory: true,
@@ -126,7 +122,6 @@ const UploadBill: React.FC<UploadBillProps> = ({
           mimeType: asset.mimeType,
         };
 
-        console.log('UploadBill: Document selected:', file.name);
         setSelectedFiles([...selectedFiles, file]);
         onFileSelected(file);
       }
@@ -141,7 +136,6 @@ const UploadBill: React.FC<UploadBillProps> = ({
   const handleRemoveFile = (index: number) => {
     const newFiles = selectedFiles.filter((_, i) => i !== index);
     setSelectedFiles(newFiles);
-    console.log('UploadBill: File removed:', selectedFiles[index].name);
   };
 
   const renderFileItem = ({ item, index }: { item: UploadedFile; index: number }) => (

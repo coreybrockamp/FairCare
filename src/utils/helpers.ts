@@ -142,7 +142,6 @@ export const retryWithBackoff = async <T>(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`Attempt ${attempt}/${maxAttempts}`);
       return await fn();
     } catch (error) {
       lastError = error as Error;
@@ -150,7 +149,6 @@ export const retryWithBackoff = async <T>(
 
       if (attempt < maxAttempts) {
         const backoffDelay = delay * Math.pow(2, attempt - 1);
-        console.log(`Retrying in ${backoffDelay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, backoffDelay));
       }
     }

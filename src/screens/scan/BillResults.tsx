@@ -83,8 +83,6 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         setDecryptedPatient(patientVal);
         setDecryptedProvider(providerVal);
         // Run error detection
-        console.log('PARSED CPT CODES:', JSON.stringify((data.parsed_data?.line_items || []).map((i: any) => i.cpt_code)));
-        console.log('FULL PARSED DATA:', JSON.stringify(data.parsed_data, null, 2));
         const detectedErrors = runErrorDetection(data.parsed_data || {});
         setErrors(detectedErrors);
         // Show EOB prompt 2 seconds after successful load (once per bill)

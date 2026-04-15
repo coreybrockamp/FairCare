@@ -61,17 +61,14 @@ const RootNavigator: React.FC = () => {
   // everything below assumes hooks have already been called
   try {
     const loadingValue: boolean = auth.loading as boolean;
-    console.log('[RootNavigator] Loading:', loadingValue, '| User:', !!auth.user);
 
     // Show loading screen while checking auth state
     if (loadingValue === true) {
-      console.log('[RootNavigator] Showing loading screen');
       return <LoadingScreen />;
     }
 
     // Determine if user is authenticated
     const isAuthenticated = auth.user !== null && auth.user !== undefined;
-    console.log('[RootNavigator] Is authenticated:', isAuthenticated);
 
     return (
       <Stack.Navigator screenOptions={{ headerShown: false }}>

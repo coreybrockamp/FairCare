@@ -25,14 +25,12 @@ const ProcessingScreen: React.FC<ProcessingScreenProps> = ({ navigation, route }
   useEffect(() => {
     const processImage = async () => {
       try {
-        console.log('Processing: Starting bill parse via edge function');
         setIsProcessing(true);
 
         // call parse-bill directly using base64 payload
         const parsed: any = await import('../../services/billParser').then(m =>
           m.parseBill({ imageBase64 })
         );
-        console.log('Processing: parse-bill returned', parsed);
 
         // create database row and save parsed data
         const bill: any = await import('../../services/billParser').then(m =>

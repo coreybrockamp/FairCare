@@ -17,7 +17,6 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
   const { signUp, signInWithGoogle, signInWithApple } = useAuth();
 
   const handleSignUp = async () => {
-    console.log('handleSignUp called with email:', email);
     
     if (!email.trim()) {
       Alert.alert('Validation Error', 'Please enter an email address');
@@ -36,9 +35,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      console.log('Calling signUp function...');
       await signUp(email, password);
-      console.log('SignUp successful!');
       Alert.alert('Success', 'Account created successfully. Please check your email to verify your account.');
       setTimeout(() => {
         navigation.navigate('Login');

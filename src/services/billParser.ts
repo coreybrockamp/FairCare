@@ -34,14 +34,12 @@ function xorDecrypt(data: string, key: Uint8Array): string {
 export async function parseBill(input: { ocrText?: string; imageBase64?: string }) {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/parse-bill';
   const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-  console.log('parseBill: fetching', url);
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key, 'apikey': key },
     body: JSON.stringify(input),
   });
   const text = await response.text();
-  console.log('parseBill status:', response.status, text.substring(0, 100));
   if (response.status !== 200) throw new Error('parse-bill failed: ' + text);
   return JSON.parse(text);
 }

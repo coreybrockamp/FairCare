@@ -31,13 +31,11 @@ const PreviewScreen: React.FC<PreviewScreenProps> = ({ navigation, route }) => {
 
     setIsProcessing(true);
     try {
-      console.log('Preview: Confirming captured image, saving to storage...');
 
       // compress the photo before doing anything else
       const timestamp = Date.now();
       const fileName = `bill-${timestamp}.jpg`;
 
-      console.log('Preview: compressing image for upload');
       const manipulated = await ImageManipulator.manipulateAsync(
         photoUri,
         [{ resize: { width: 800 } }],
@@ -46,11 +44,9 @@ const PreviewScreen: React.FC<PreviewScreenProps> = ({ navigation, route }) => {
 
       // save the compressed version into storage so we have a persistent URI
       const storagePath = await saveImageToStorage(manipulated.uri, fileName);
-      console.log('Preview: Image compressed and saved to storage', storagePath);
 
       // we already got base64 from manipulator, just make sure it's defined
       const base64 = (manipulated.base64 || '').replace(/^data:image\/[a-z]+;base64,/, '');
-      console.log('Preview: Image converted to base64, size', base64.length);
 
       // Navigate to processing screen
       navigation.navigate('Processing', {
@@ -67,7 +63,6 @@ const PreviewScreen: React.FC<PreviewScreenProps> = ({ navigation, route }) => {
   };
 
   const handleRetake = () => {
-    console.log('Preview: User requested retake');
     navigation.goBack();
   };
 

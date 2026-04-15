@@ -19,12 +19,10 @@ const ScanScreen: React.FC<ScanScreenProps> = ({ navigation }) => {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleStartCapture = () => {
-    console.log('ScanScreen: Starting camera capture flow');
     navigation.navigate('Camera');
   };
 
   const handleFileSelected = async (file: UploadedFile) => {
-    console.log('ScanScreen: File selected:', file.name);
     setSelectedFile(file);
 
     // Auto-process the selected file
@@ -40,7 +38,6 @@ const ScanScreen: React.FC<ScanScreenProps> = ({ navigation }) => {
       const ocrResult = await extractTextFromImage(file.uri, base64);
       setUploadProgress(100);
 
-      console.log('ScanScreen: File processing complete');
 
       // Navigate to results
       navigation.navigate('Results', {

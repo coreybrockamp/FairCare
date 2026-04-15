@@ -7,7 +7,6 @@ export function runErrorDetection(bill: ParsedBill): DetectedError[] {
   const errors: DetectedError[] = [];
 
   // Run all detectors
-  console.log('ERROR DETECTION - line items:', JSON.stringify((bill.line_items || []).map((i: any) => ({ cpt: i.cpt_code, desc: i.description }))));
   const duplicates = detectDuplicates(bill);
   const upcoding = detectUpcoding(bill);
   const unbundling = detectUnbundling(bill);

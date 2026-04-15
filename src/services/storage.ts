@@ -9,7 +9,6 @@ import * as ImageManipulator from 'expo-image-manipulator';
  * @returns Path to saved image
  */
 export const saveImageToStorage = async (imageUri: string, fileName: string): Promise<string> => {
-  console.log('Storage: Saving image to app storage:', fileName);
 
   try {
     // documentDirectory is not recognized on the exported type, cast to any
@@ -18,7 +17,6 @@ const appStorageDir = `${FileSystem.documentDirectory}captured-bills`;
     const dirInfo = await FileSystem.getInfoAsync(appStorageDir);
     if (!dirInfo.exists) {
       await FileSystem.makeDirectoryAsync(appStorageDir, { intermediates: true });
-      console.log('Storage: Created directory:', appStorageDir);
     }
 
     const destinationUri = `${appStorageDir}/${fileName}`;
@@ -29,7 +27,6 @@ const appStorageDir = `${FileSystem.documentDirectory}captured-bills`;
       to: destinationUri,
     });
 
-    console.log('Storage: Image saved to:', destinationUri);
     return destinationUri;
   } catch (error: any) {
     console.error('Storage: Failed to save image:', error);
@@ -43,13 +40,11 @@ const appStorageDir = `${FileSystem.documentDirectory}captured-bills`;
  * @returns Base64 encoded image data
  */
 export const readImageAsBase64 = async (imageUri: string): Promise<string> => {
-  console.log('Storage: Reading image as base64:', imageUri);
 
   try {
     const base64 = await FileSystem.readAsStringAsync(imageUri, {
       encoding: (FileSystem as any).EncodingType.Base64,
     });
-    console.log('Storage: Image read as base64, size:', base64.length);
     return base64;
   } catch (error: any) {
     console.error('Storage: Failed to read image:', error);
@@ -64,7 +59,6 @@ export const readImageAsBase64 = async (imageUri: string): Promise<string> => {
  * @returns URI of compressed image
  */
 export const compressImage = async (imageUri: string, quality: number = 0.8): Promise<string> => {
-  console.log('Storage: Compressing image with quality:', quality);
 
   try {
     const manipulated = await ImageManipulator.manipulateAsync(
@@ -73,7 +67,6 @@ export const compressImage = async (imageUri: string, quality: number = 0.8): Pr
       { compress: quality, format: ImageManipulator.SaveFormat.JPEG }
     );
 
-    console.log('Storage: Image compressed, uri:', manipulated.uri);
     return manipulated.uri;
   } catch (error: any) {
     console.error('Storage: Failed to compress image:', error);
@@ -87,11 +80,9 @@ export const compressImage = async (imageUri: string, quality: number = 0.8): Pr
  * @param imageUri - URI of the image to delete
  */
 export const deleteImageFromStorage = async (imageUri: string): Promise<void> => {
-  console.log('Storage: Deleting image:', imageUri);
 
   try {
     await FileSystem.deleteAsync(imageUri);
-    console.log('Storage: Image deleted successfully');
   } catch (error: any) {
     console.error('Storage: Failed to delete image:', error);
   }
