@@ -19,6 +19,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { supabase } from '../services/supabase';
 import { decryptField } from '../services/billParser';
 import { runErrorDetection, DetectedError } from '../services/errorDetection';
+import { matchCharityCare } from '../services/charityCareMatcher';
 
 // warm friendly palette
 const COLORS = {
@@ -54,6 +55,7 @@ interface EnrichedBill {
   hasDispute: boolean;
   totalSavings: number;
   resolved_amount: number | null;
+  isNonprofit: boolean;
 }
 
 interface BillsScreenProps {
@@ -114,6 +116,10 @@ function BillsScreen({ navigation }: BillsScreenProps) {
           const rawDue = bill.parsed_data?.total_due?.value || bill.parsed_data?.total_due;
           const totalDue = rawDue ? parseFloat(String(rawDue).replace(/[^0-9.]/g, '')) || 0 : 0;
 
+          // Check if provider is a nonprofit
+          const ccMatch = matchCharityCare(providerName);
+          const isNonprofit = ccMatch.isNonprofit;
+
           // Run error detection client-side
           const errors = runErrorDetection(bill.parsed_data || {});
           const errorCount = errors.length;
@@ -142,6 +148,7 @@ function BillsScreen({ navigation }: BillsScreenProps) {
             errors,
             hasDispute,
             totalSavings,
+            isNonprofit,
           };
         })
       );
@@ -376,7 +383,9 @@ function BillsScreen({ navigation }: BillsScreenProps) {
         {/* Top row: Provider + Status */}
         <View style={styles.billCardTop}>
           <View style={{ flex: 1, marginRight: 12 }}>
-            <Text style={styles.billProvider} numberOfLines={1}>{bill.providerName}</Text>
+            <Text style={styles.billProvider} numberOfLines={1}>
+              {bill.providerName}{bill.isNonprofit ? ' 💛' : ''}
+            </Text>
             <View style={styles.metaRow}>
               <Text style={styles.billDate}>{formatDate(bill.created_at)}</Text>
               {dueInfo && (

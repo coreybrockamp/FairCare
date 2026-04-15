@@ -3,11 +3,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Onboarding1 from '../screens/onboarding/Onboarding1';
 import Onboarding2 from '../screens/onboarding/Onboarding2';
 import Onboarding3 from '../screens/onboarding/Onboarding3';
+import Onboarding4 from '../screens/onboarding/Onboarding4';
 
 export type OnboardingStackParamList = {
   Onboarding1: undefined;
   Onboarding2: undefined;
   Onboarding3: undefined;
+  Onboarding4: undefined;
 };
 
 const Stack = createStackNavigator<OnboardingStackParamList>();
@@ -28,6 +30,9 @@ const OnboardingNavigator: React.FC<Props> = ({ onFinish }) => (
     </Stack.Screen>
     <Stack.Screen name="Onboarding3">
       {props => <Onboarding3 {...props} onComplete={onFinish} />}
+    </Stack.Screen>
+    <Stack.Screen name="Onboarding4">
+      {props => <Onboarding4 {...props} onComplete={onFinish} />}
     </Stack.Screen>
   </Stack.Navigator>
 );

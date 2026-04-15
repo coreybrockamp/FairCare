@@ -32,6 +32,8 @@ import { supabase } from '../../services/supabase';
 import { decryptField } from '../../services/billParser';
 import { runErrorDetection, DetectedError } from '../../services/errorDetection';
 import { generateDisputeLetter } from '../../services/disputeGenerator';
+import { matchCharityCare, CharityCareMatch } from '../../services/charityCareMatcher';
+import CharityCarePrompt from '../../components/CharityCarePrompt';
 
 interface Props {
   navigation: StackNavigationProp<ScanStackParamList, 'BillResults'>;
@@ -49,6 +51,8 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
   const [expandedError, setExpandedError] = useState<string | null>(null);
   const [generatingLetter, setGeneratingLetter] = useState(false);
   const [showEobPrompt, setShowEobPrompt] = useState(false);
+  const [charityCareMatch, setCharityCareMatch] = useState<CharityCareMatch | null>(null);
+  const [charityCareVisible, setCharityCareVisible] = useState(true);
   const eobTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -82,6 +86,9 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         const providerVal = (rawProvider && typeof rawProvider === 'object' && rawProvider.value) ? rawProvider.value : String(rawProvider || '');
         setDecryptedPatient(patientVal);
         setDecryptedProvider(providerVal);
+        // Run charity care matching against provider name
+        const ccMatch = matchCharityCare(providerVal);
+        if (ccMatch.isNonprofit) setCharityCareMatch(ccMatch);
         // Run error detection
         const detectedErrors = runErrorDetection(data.parsed_data || {});
         setErrors(detectedErrors);
@@ -233,6 +240,14 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.successTitle}>Nice work!</Text>
           <Text style={styles.subtitle}>Here’s your bill breakdown</Text>
         </View>
+
+        {charityCareMatch?.isNonprofit && charityCareVisible && (
+          <CharityCarePrompt
+            hospitalName={charityCareMatch.hospitalName}
+            charityUrl={charityCareMatch.charityUrl}
+            onDismiss={() => setCharityCareVisible(false)}
+          />
+        )}
 
         <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
 

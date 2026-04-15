@@ -12,10 +12,7 @@ interface Props {
 
 const Onboarding3: React.FC<Props> = ({ navigation, onComplete }) => {
   const handleStart = () => {
-    // completeOnboarding will set the flag and notify RootNavigator.
-    // we supply 'Scan' as the desired initial tab so the MainNavigator
-    // opens on the camera screen automatically.
-    onComplete('Scan');
+    navigation.navigate('Onboarding4');
   };
 
   return (
@@ -48,7 +45,7 @@ const Onboarding3: React.FC<Props> = ({ navigation, onComplete }) => {
 
         <TouchableOpacity
           style={styles.laterButton}
-          onPress={() => onComplete()}
+          onPress={() => navigation.navigate('Onboarding4')}
           activeOpacity={0.6}
         >
           <Text style={styles.laterText}>I'll do it later</Text>

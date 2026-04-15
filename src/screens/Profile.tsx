@@ -10,12 +10,20 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { useOnboarding } from '../contexts/OnboardingContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../services/supabase';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { ProfileStackParamList } from '../navigation/ProfileNavigator';
+import {
+  parseInsuranceCard,
+  saveInsuranceCard,
+  getInsuranceCard,
+  deleteInsuranceCard,
+} from '../services/insuranceCardParser';
 
 const COLORS = {
   primary: '#FF6B6B',
@@ -41,6 +49,10 @@ const ProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(true);
+
+  // Insurance card state
+  const [insuranceCard, setInsuranceCard] = useState<any>(null);
+  const [scanningCard, setScanningCard] = useState(false);
 
   // Load profile on mount
   useEffect(() => {
@@ -76,6 +88,66 @@ const ProfileScreen: React.FC = () => {
     
     loadProfile();
   }, [user?.id]);
+
+  // Load insurance card
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadCard = async () => {
+        const card = await getInsuranceCard();
+        setInsuranceCard(card);
+      };
+      loadCard();
+    }, [])
+  );
+
+  const handleScanInsuranceCard = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow photo access to scan your insurance card.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      setScanningCard(true);
+      const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+        encoding: (FileSystem as any).EncodingType.Base64,
+      });
+
+      const parsed = await parseInsuranceCard(base64);
+      const saved = await saveInsuranceCard(parsed, base64);
+      setInsuranceCard(saved);
+      Alert.alert('Success', 'Insurance card saved');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to scan insurance card');
+    } finally {
+      setScanningCard(false);
+    }
+  };
+
+  const handleRemoveInsuranceCard = () => {
+    Alert.alert('Remove Card', 'Are you sure you want to remove your insurance card?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteInsuranceCard();
+            setInsuranceCard(null);
+          } catch (err: any) {
+            Alert.alert('Error', err.message || 'Failed to remove card');
+          }
+        },
+      },
+    ]);
+  };
 
   const handleSaveProfile = async () => {
     if (!user?.id) {
@@ -124,6 +196,7 @@ const ProfileScreen: React.FC = () => {
     try {
       console.log('[Profile] deleting user data');
       if (user?.id) {
+        await supabase.from('insurance_cards').delete().eq('user_id', user.id);
         await supabase.from('eobs').delete().eq('user_id', user.id);
         await supabase.from('bills').delete().eq('user_id', user.id);
         await supabase.from('profiles').delete().eq('user_id', user.id);
@@ -263,6 +336,75 @@ const ProfileScreen: React.FC = () => {
               </Text>
             )}
           </TouchableOpacity>
+        </View>
+
+        {/* Insurance Card */}
+        <View style={styles.formCard}>
+          <Text style={styles.sectionTitle}>Insurance Card</Text>
+          {insuranceCard ? (
+            <>
+              <View style={styles.insuranceInfo}>
+                {insuranceCard.insurance_company && (
+                  <View style={styles.insuranceRow}>
+                    <Text style={styles.insuranceLabel}>Company</Text>
+                    <Text style={styles.insuranceValue}>{insuranceCard.insurance_company}</Text>
+                  </View>
+                )}
+                {insuranceCard.member_id && (
+                  <View style={styles.insuranceRow}>
+                    <Text style={styles.insuranceLabel}>Member ID</Text>
+                    <Text style={styles.insuranceValue}>{insuranceCard.member_id}</Text>
+                  </View>
+                )}
+                {insuranceCard.plan_name && (
+                  <View style={styles.insuranceRow}>
+                    <Text style={styles.insuranceLabel}>Plan</Text>
+                    <Text style={styles.insuranceValue}>{insuranceCard.plan_name}</Text>
+                  </View>
+                )}
+                {insuranceCard.group_number && (
+                  <View style={styles.insuranceRow}>
+                    <Text style={styles.insuranceLabel}>Group #</Text>
+                    <Text style={styles.insuranceValue}>{insuranceCard.group_number}</Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[styles.button, styles.editButton]}
+                onPress={handleScanInsuranceCard}
+                disabled={scanningCard}
+              >
+                {scanningCard ? (
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                ) : (
+                  <Text style={[styles.buttonText, styles.editButtonText]}>Update Card</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.removeCardButton}
+                onPress={handleRemoveInsuranceCard}
+              >
+                <Text style={styles.removeCardText}>Remove Card</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.sectionDescription}>
+                Add your insurance card to pre-fill dispute letters and catch more billing errors.
+              </Text>
+              <TouchableOpacity
+                style={[styles.button, styles.saveButton]}
+                onPress={handleScanInsuranceCard}
+                disabled={scanningCard}
+              >
+                {scanningCard ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.buttonText}>Add Insurance Card</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Account Actions */}
@@ -465,6 +607,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  insuranceInfo: {
+    marginBottom: 16,
+  },
+  insuranceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  insuranceLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  insuranceValue: {
+    fontSize: 15,
+    color: COLORS.text,
+    fontWeight: '600',
+    flexShrink: 1,
+    textAlign: 'right',
+    marginLeft: 16,
+  },
+  removeCardButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  removeCardText: {
+    fontSize: 14,
+    color: '#DC3545',
+    fontWeight: '500',
   },
 });
 
