@@ -125,5 +125,11 @@ export async function generateDisputeLetter(
     }]);
   }
 
+  // Update bill status to disputed
+  await supabase
+    .from('bills')
+    .update({ status: 'disputed' })
+    .eq('id', billId);
+
   return letterContent;
 }

@@ -85,6 +85,14 @@ const BillResults: React.FC<Props> = ({ navigation, route }) => {
         // Run error detection
         const detectedErrors = runErrorDetection(data.parsed_data || {});
         setErrors(detectedErrors);
+        // Update bill status based on error detection results
+        const newStatus = detectedErrors.length > 0 ? 'errors_found' : 'clean';
+        if (data.status !== 'resolved' && data.status !== 'disputed') {
+          await supabase
+            .from('bills')
+            .update({ status: newStatus })
+            .eq('id', billId);
+        }
         // Show EOB prompt 2 seconds after successful load (once per bill)
         const eobKey = `eob_prompt_shown_${billId}`;
         const alreadyShown = await AsyncStorage.getItem(eobKey);
