@@ -32,7 +32,8 @@ const CharityCarePrompt: React.FC<CharityCarePromptProps> = ({
 
   const handleLearnMore = () => {
     if (charityUrl) {
-      Linking.openURL(charityUrl).catch(() => {});
+      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(hospitalName + ' financial assistance charity care application')}`;
+      Linking.openURL(searchUrl).catch(() => {});
     }
   };
 
