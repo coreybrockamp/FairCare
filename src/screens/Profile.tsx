@@ -9,9 +9,9 @@ import {
   TextInput,
   SafeAreaView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
@@ -100,7 +100,42 @@ const ProfileScreen: React.FC = () => {
     }, [])
   );
 
-  const handleScanInsuranceCard = async () => {
+  const processInsuranceImage = async (uri: string, base64: string) => {
+    setScanningCard(true);
+    try {
+      const parsed = await parseInsuranceCard(base64);
+      const saved = await saveInsuranceCard(parsed, base64, uri);
+      setInsuranceCard(saved);
+      Alert.alert('Success', 'Insurance card saved');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to scan insurance card');
+    } finally {
+      setScanningCard(false);
+    }
+  };
+
+  const handleTakeCardPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow camera access to take a photo of your insurance card.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        base64: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+      await processInsuranceImage(result.assets[0].uri, result.assets[0].base64);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to scan insurance card');
+    }
+  };
+
+  const handleUploadCardFromLibrary = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -110,25 +145,23 @@ const ProfileScreen: React.FC = () => {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
+        base64: true,
         quality: 0.8,
       });
 
-      if (result.canceled || !result.assets?.[0]) return;
-
-      setScanningCard(true);
-      const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
-        encoding: (FileSystem as any).EncodingType.Base64,
-      });
-
-      const parsed = await parseInsuranceCard(base64);
-      const saved = await saveInsuranceCard(parsed, base64);
-      setInsuranceCard(saved);
-      Alert.alert('Success', 'Insurance card saved');
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+      await processInsuranceImage(result.assets[0].uri, result.assets[0].base64);
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to scan insurance card');
-    } finally {
-      setScanningCard(false);
     }
+  };
+
+  const handleScanInsuranceCard = () => {
+    Alert.alert('Scan Insurance Card', 'Choose how to add your card', [
+      { text: 'Take Photo', onPress: handleTakeCardPhoto },
+      { text: 'Upload from Library', onPress: handleUploadCardFromLibrary },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleRemoveInsuranceCard = () => {
@@ -343,10 +376,19 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Insurance Card</Text>
           {insuranceCard ? (
             <>
+              {insuranceCard.image_url && (
+                <View style={styles.cardImageWrapper}>
+                  <Image
+                    source={{ uri: insuranceCard.image_url }}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                  />
+                </View>
+              )}
               <View style={styles.insuranceInfo}>
                 {insuranceCard.insurance_company && (
                   <View style={styles.insuranceRow}>
-                    <Text style={styles.insuranceLabel}>Company</Text>
+                    <Text style={styles.insuranceLabel}>Insurance Company</Text>
                     <Text style={styles.insuranceValue}>{insuranceCard.insurance_company}</Text>
                   </View>
                 )}
@@ -356,16 +398,16 @@ const ProfileScreen: React.FC = () => {
                     <Text style={styles.insuranceValue}>{insuranceCard.member_id}</Text>
                   </View>
                 )}
-                {insuranceCard.plan_name && (
-                  <View style={styles.insuranceRow}>
-                    <Text style={styles.insuranceLabel}>Plan</Text>
-                    <Text style={styles.insuranceValue}>{insuranceCard.plan_name}</Text>
-                  </View>
-                )}
                 {insuranceCard.group_number && (
                   <View style={styles.insuranceRow}>
-                    <Text style={styles.insuranceLabel}>Group #</Text>
+                    <Text style={styles.insuranceLabel}>Group Number</Text>
                     <Text style={styles.insuranceValue}>{insuranceCard.group_number}</Text>
+                  </View>
+                )}
+                {insuranceCard.plan_name && (
+                  <View style={styles.insuranceRow}>
+                    <Text style={styles.insuranceLabel}>Plan Name</Text>
+                    <Text style={styles.insuranceValue}>{insuranceCard.plan_name}</Text>
                   </View>
                 )}
               </View>
@@ -607,6 +649,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.primary,
+  },
+  cardImageWrapper: {
+    marginTop: 12,
+    marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  cardImage: {
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
   },
   insuranceInfo: {
     marginBottom: 16,

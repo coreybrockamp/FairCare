@@ -84,11 +84,35 @@ export async function generateDisputeLetter(
     }
   }
   
+  // Fetch user's insurance card
+  let insuranceData: { company: string; memberId: string; groupNumber: string; planName: string } | null = null;
+
+  if (user?.id) {
+    try {
+      const { data: card } = await supabase
+        .from('insurance_cards')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (card) {
+        insuranceData = {
+          company: card.insurance_company || '',
+          memberId: card.member_id || '',
+          groupNumber: card.group_number || '',
+          planName: card.plan_name || '',
+        };
+      }
+    } catch (err) {
+      console.error('Failed to fetch insurance card:', err);
+    }
+  }
+
   // Build full address for letter signature
   const fullAddress = [userAddress, userCity, userState, userZip]
     .filter(part => part && part.trim())
     .join(', ');
-  
+
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1/generate-dispute-letter';
   const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -99,12 +123,13 @@ export async function generateDisputeLetter(
       'Authorization': 'Bearer ' + key,
       'apikey': key,
     },
-    body: JSON.stringify({ 
-      billData, 
-      errors, 
-      patientName: realPatientName, 
+    body: JSON.stringify({
+      billData,
+      errors,
+      patientName: realPatientName,
       providerName: realProviderName,
       userAddress: fullAddress,
+      insuranceData,
     }),
   });
 

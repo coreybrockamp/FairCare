@@ -22,10 +22,18 @@ export async function parseInsuranceCard(imageBase64: string) {
 
   const text = await response.text();
   if (response.status !== 200) throw new Error('parse-insurance-card failed: ' + text);
-  return JSON.parse(text);
+
+  const parsedData = JSON.parse(text);
+  console.log('Insurance card parse result:', JSON.stringify(parsedData, null, 2));
+
+  if (!parsedData.insurance_company && !parsedData.member_id && !parsedData.group_number && !parsedData.plan_name) {
+    throw new Error('Could not extract insurance card data — please try a clearer photo.');
+  }
+
+  return parsedData;
 }
 
-export async function saveInsuranceCard(parsedData: any, imageBase64?: string) {
+export async function saveInsuranceCard(parsedData: any, imageBase64?: string, imageUri?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.id) throw new Error('Not authenticated');
 
@@ -38,7 +46,7 @@ export async function saveInsuranceCard(parsedData: any, imageBase64?: string) {
     plan_type: getVal(parsedData.plan_type),
     effective_date: getVal(parsedData.effective_date),
     raw_parsed_data: parsedData,
-    image_url: imageBase64 ? `data:image/jpeg;base64,${imageBase64.substring(0, 100)}...` : null,
+    image_url: imageBase64 ? `data:image/jpeg;base64,${imageBase64}` : (imageUri || null),
   };
 
   // Upsert: delete existing card for this user, then insert new one

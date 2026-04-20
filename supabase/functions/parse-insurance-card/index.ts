@@ -44,7 +44,7 @@ Return this exact JSON structure:
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-3-haiku-20240307",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 2000,
         system: systemPrompt,
         messages: [{
@@ -71,7 +71,7 @@ Return this exact JSON structure:
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
           body: JSON.stringify({
-            model: "claude-3-haiku-20240307",
+            model: "claude-haiku-4-5-20251001",
             max_tokens: 2000,
             messages: [{ role: "user", content: "Fix this JSON so it is valid. Return ONLY the fixed JSON with no explanation or backticks:\n" + text }]
           })

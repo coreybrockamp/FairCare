@@ -24,12 +24,20 @@ interface DetectedError {
   affected_line_items?: number[];
 }
 
+interface InsuranceData {
+  company: string;
+  memberId: string;
+  groupNumber: string;
+  planName: string;
+}
+
 interface RequestBody {
   billData: BillData;
   errors: DetectedError[];
   patientName: string;
   providerName: string;
   userAddress?: string;
+  insuranceData?: InsuranceData | null;
 }
 
 serve(async (req) => {
@@ -39,7 +47,7 @@ serve(async (req) => {
 
   try {
     const body: RequestBody = await req.json();
-    const { billData, errors, patientName, providerName, userAddress } = body;
+    const { billData, errors, patientName, providerName, userAddress, insuranceData } = body;
 
     if (!billData || !errors || !patientName || !providerName) {
       return new Response(
@@ -62,11 +70,21 @@ serve(async (req) => {
 
     const systemPrompt = `You are a medical billing dispute expert. Write professional dispute letters. Output ONLY the letter itself starting with the date — no introduction, no explanation, no preamble. Start directly with the date line. Include the sender's address (if provided) in the letter header.`;
 
+    const insuranceSection = insuranceData?.company
+      ? `\nInsurance Company: ${insuranceData.company}
+Member ID: ${insuranceData.memberId || "[Member ID]"}
+Group Number: ${insuranceData.groupNumber || "[Group Number]"}
+Plan Name: ${insuranceData.planName || "[Plan Name]"}\n`
+      : `\nInsurance Company: [Your Insurance Company]
+Member ID: [Your Member ID]
+Group Number: [Your Group Number]\n`;
+
     const userPrompt = `Generate a professional dispute letter with these details:
 
 Patient Name: ${patientName}
 Patient Address: ${userAddress || "[Patient Address]"}
 Provider/Facility: ${providerName}
+${insuranceSection}
 Bill Total Due: $${billData.total_due || "0.00"}
 Patient Responsibility: $${billData.patient_responsibility || "0.00"}
 
@@ -75,7 +93,7 @@ ${errorSummary}
 
 Total Estimated Overcharge: $${totalOvercharge}
 
-Write the complete dispute letter in professional business letter format. Include today's date and the patient address in the letter header. Make it clear, specific, and actionable. Output ONLY the letter with no preamble.`;
+Write the complete dispute letter in professional business letter format. Include today's date and the patient address in the letter header. Reference the patient's insurance company, member ID, and group number in the letter body — use the exact values provided above, never use placeholder brackets if real values are available. Make it clear, specific, and actionable. Output ONLY the letter with no preamble. Do NOT use any markdown formatting — no asterisks, no bold, no bullet symbols, no ## headers. Use plain text only with standard business letter formatting.`;
 
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicApiKey) {
@@ -93,7 +111,7 @@ Write the complete dispute letter in professional business letter format. Includ
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-haiku-20240307",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 1024,
         system: systemPrompt,
         messages: [

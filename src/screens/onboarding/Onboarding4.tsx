@@ -7,9 +7,9 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { OnboardingStackParamList } from '../../navigation/OnboardingNavigator';
 import { parseInsuranceCard, saveInsuranceCard } from '../../services/insuranceCardParser';
@@ -41,28 +41,13 @@ const Onboarding4: React.FC<Props> = ({ navigation, onComplete }) => {
   const [saving, setSaving] = useState(false);
   const [parsedData, setParsedData] = useState<any>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
-  const handleScan = async () => {
+  const processImage = async (uri: string, base64: string) => {
+    setScanning(true);
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow photo access to scan your insurance card.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-      });
-
-      if (result.canceled || !result.assets?.[0]) return;
-
-      setScanning(true);
-      const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
-        encoding: (FileSystem as any).EncodingType.Base64,
-      });
+      setImageUri(uri);
       setImageBase64(base64);
-
       const parsed = await parseInsuranceCard(base64);
       setParsedData(parsed);
     } catch (err: any) {
@@ -72,11 +57,53 @@ const Onboarding4: React.FC<Props> = ({ navigation, onComplete }) => {
     }
   };
 
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow camera access to take a photo of your insurance card.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        base64: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+      await processImage(result.assets[0].uri, result.assets[0].base64);
+    } catch (err: any) {
+      Alert.alert('Scan failed', err.message || 'Could not read insurance card. Try again.');
+    }
+  };
+
+  const handleUploadFromLibrary = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow photo access to scan your insurance card.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        base64: true,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+      await processImage(result.assets[0].uri, result.assets[0].base64);
+    } catch (err: any) {
+      Alert.alert('Scan failed', err.message || 'Could not read insurance card. Try again.');
+    }
+  };
+
   const handleSave = async () => {
     if (!parsedData) return;
     setSaving(true);
     try {
-      await saveInsuranceCard(parsedData, imageBase64 || undefined);
+      await saveInsuranceCard(parsedData, imageBase64 || undefined, imageUri || undefined);
       onComplete();
     } catch (err: any) {
       Alert.alert('Save failed', err.message || 'Could not save card.');
@@ -112,6 +139,14 @@ const Onboarding4: React.FC<Props> = ({ navigation, onComplete }) => {
             </View>
 
             <Text style={styles.title}>Card scanned!</Text>
+
+            {imageUri && (
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+            )}
 
             <View style={styles.previewCard}>
               {company && (
@@ -151,18 +186,28 @@ const Onboarding4: React.FC<Props> = ({ navigation, onComplete }) => {
 
       <View style={styles.footer}>
         {!parsedData ? (
-          <TouchableOpacity
-            style={styles.scanButton}
-            onPress={handleScan}
-            activeOpacity={0.8}
-            disabled={scanning}
-          >
-            {scanning ? (
+          scanning ? (
+            <View style={styles.scanButton}>
               <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.scanButtonText}>Scan Insurance Card</Text>
-            )}
-          </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.scanButton, styles.buttonHalf]}
+                onPress={handleTakePhoto}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.scanButtonText}>Take Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.libraryButton, styles.buttonHalf]}
+                onPress={handleUploadFromLibrary}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.libraryButtonText}>Upload from Library</Text>
+              </TouchableOpacity>
+            </View>
+          )
         ) : (
           <>
             <TouchableOpacity
@@ -183,6 +228,7 @@ const Onboarding4: React.FC<Props> = ({ navigation, onComplete }) => {
               onPress={() => {
                 setParsedData(null);
                 setImageBase64(null);
+                setImageUri(null);
               }}
               activeOpacity={0.6}
             >
@@ -253,6 +299,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 28,
   },
+  cardImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
   previewCard: {
     backgroundColor: COLORS.card,
     borderRadius: 16,
@@ -289,6 +341,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  buttonHalf: {
+    flex: 1,
+  },
   scanButton: {
     backgroundColor: COLORS.primary,
     height: 56,
@@ -298,7 +357,19 @@ const styles = StyleSheet.create({
   },
   scanButtonText: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  libraryButton: {
+    backgroundColor: '#E8E8E8',
+    height: 56,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  libraryButtonText: {
+    color: COLORS.text,
+    fontSize: 16,
     fontWeight: '700',
   },
   rescanButton: {
